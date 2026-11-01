@@ -3,7 +3,7 @@
 <head>
     <script>
         // 배포 버전은 이 값만 변경합니다. 앱 표기와 정적 리소스 캐시에 함께 적용됩니다.
-        window.APP_VERSION = "v111";
+        window.APP_VERSION = "v001";
         window.NEXUS_BUILD_VERSION = window.APP_VERSION;
         if (new URLSearchParams(window.location.search).get('nexusStandalone') === 'build') {
             document.documentElement.classList.add('nexus-standalone-build');
@@ -198,22 +198,22 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <!-- OG/Twitter 이미지 캐시: 앱 버전 변경 시 아래 세 URL을 같은 버전으로 맞춥니다. -->
-    <meta property="og:image" content="https://nxsbuild.github.io/nexus/logo.png?v=v111">
-    <meta property="og:image:secure_url" content="https://nxsbuild.github.io/nexus/logo.png?v=v111">
+    <meta property="og:image" content="https://nxsbuild.github.io/nexus/logo.png?v=v001">
+    <meta property="og:image:secure_url" content="https://nxsbuild.github.io/nexus/logo.png?v=v001">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:alt" content="개복디 넥서스">
-    <meta name="twitter:image" content="https://nxsbuild.github.io/nexus/logo.png?v=v111">
+    <meta name="twitter:image" content="https://nxsbuild.github.io/nexus/logo.png?v=v001">
     <meta name="twitter:image:alt" content="개복디 넥서스">
-    <meta name="description" content="유닛도감, 히든보드, 재료보드, 정수계산을 한곳에서 사용할 수 있는 개복디 넥서스 조합/계산 HUB">
+    <meta name="description" content="유닛도감, 히든보드, 필요재료, 정수계산을 한곳에서 사용할 수 있는 개복디 넥서스 조합/계산 HUB">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://nxsbuild.github.io/nexus/">
     <meta property="og:title" content="개복디 넥서스 - 히든조합&정수 계산 HUB">
-    <meta property="og:description" content="유닛도감, 히든보드, 재료보드, 정수계산을 한곳에서 사용할 수 있는 개복디 넥서스 조합/계산 HUB">
+    <meta property="og:description" content="유닛도감, 히든보드, 필요재료, 정수계산을 한곳에서 사용할 수 있는 개복디 넥서스 조합/계산 HUB">
     <meta property="og:image:width" content="1280">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="개복디 넥서스 - 히든조합&정수 계산 HUB">
-    <meta name="twitter:description" content="유닛도감, 히든보드, 재료보드, 정수계산을 한곳에서 사용할 수 있는 개복디 넥서스 조합/계산 HUB">
+    <meta name="twitter:description" content="유닛도감, 히든보드, 필요재료, 정수계산을 한곳에서 사용할 수 있는 개복디 넥서스 조합/계산 HUB">
     <script>
         (function(){
             var icon = document.createElement('link');
@@ -411,7 +411,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         <nav class="gh-center" aria-label="주요 화면">
             <button type="button" id="btnViewUnitboard" class="gh-nav-btn active" data-action="switchMainView" data-view="unitboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="gh-nav-label">유닛도감</span></button>
             <button type="button" id="btnViewHiddenboard" class="gh-nav-btn" data-action="switchMainView" data-view="hiddenboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v5m-7 5V8h14v5M5 17v4m14-4v4"/><rect x="2" y="13" width="6" height="4" rx="1"/><rect x="16" y="13" width="6" height="4" rx="1"/><rect x="9" y="3" width="6" height="5" rx="1"/></svg><span class="gh-nav-label">히든보드</span></button>
-            <button type="button" id="btnViewInvenboard" class="gh-nav-btn" data-action="switchMainView" data-view="invenboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg><span class="gh-nav-label">재료보드</span></button>
         </nav>
         <div class="sidebar-note"><div class="sidebar-orbit" aria-hidden="true"><span></span><span></span><b>✳</b></div><p>조합의 시작부터<br><strong>완성까지, 한곳에서.</strong></p><span class="sidebar-note-caption">YOUR GAME. CONNECTED.</span></div>
         <div class="gh-right">
@@ -430,7 +429,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     <main id="mainLayout" class="main-layout">
         <section class="panel-left hud-panel" id="panelLeft" aria-label="유닛도감">
             <div class="archive-toolbar">
-                <div class="left-search-wrap" role="search"><div class="search-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input type="text" id="unitSearchInput" class="search-input" placeholder="유닛 이름 또는 커맨드 입력" autocomplete="off" spellcheck="false" aria-label="유닛 검색"><kbd>Enter ↵</kbd></div></div>
+                <div class="left-search-wrap" role="search"><div class="search-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input type="text" id="unitSearchInput" class="search-input" placeholder="유닛 이름 또는 커맨드 입력" autocomplete="off" spellcheck="false" aria-label="유닛 검색"><kbd>Enter ↵</kbd><button type="button" id="btnUnitboardGuide" class="guide-btn" data-action="showUnitboardGuide" title="유닛 도감 사용법 보기" aria-haspopup="true" aria-controls="recipeTooltip" aria-expanded="false">사용법</button></div></div>
                 <div id="presetInlineWrap" class="preset-inline-wrap" role="group" aria-label="프리셋 목록"><div id="presetInlineTabBar" class="preset-inline-tab-bar"></div><div id="presetInlineBtnList" class="preset-inline-btn-list"></div></div>
             </div>
             <div class="left-tabs-wrap"><div id="unitboardTabs" class="unitboard-tabs" role="tablist" aria-label="유닛 분류"></div></div>
@@ -454,7 +453,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
             </section>
         </aside>
         <section class="panel-right hud-panel" id="colRightPanel" aria-label="조합 보드">
-            <div class="panel-header hiddenboard-ph" id="boardMobileHeader"><div class="hiddenboard-ph-btns" id="hiddenboardGlobalActions"><button type="button" id="btnHideCompleted" class="ctrl-btn" data-action="toggleHideCompleted" aria-pressed="false" title="완료된 재료를 표시하고 있습니다"><span id="btnHideCompletedLabel">완료 숨기기</span><span class="action-state" id="btnHideCompletedState" aria-hidden="true">OFF</span></button><button type="button" id="btnRestoreAll" class="ctrl-btn reset-btn" data-action="restoreAllCompleted" title="전체 선택·보류·완료 내역 초기화 · 2초 내 다시 누르면 취소"><span id="btnRestoreAllLabel" aria-live="polite">전체 초기화</span><span class="reset-action-state" id="btnRestoreAllState" aria-hidden="true">↺</span></button></div></div>
+            <div class="panel-header hiddenboard-ph" id="boardMobileHeader"><div class="hiddenboard-ph-btns" id="hiddenboardGlobalActions"><button type="button" id="btnHiddenboardGuide" class="ctrl-btn guide-btn" data-action="showHiddenboardGuide" title="히든 보드 사용법 보기" aria-haspopup="true" aria-controls="recipeTooltip" aria-expanded="false">사용법</button><button type="button" id="btnHideCompleted" class="ctrl-btn" data-action="toggleHideCompleted" aria-pressed="false" title="완료된 재료를 표시하고 있습니다"><span id="btnHideCompletedLabel">완료 숨기기</span><span class="action-state" id="btnHideCompletedState" aria-hidden="true">OFF</span></button><button type="button" id="btnRestoreAll" class="ctrl-btn reset-btn" data-action="restoreAllCompleted" title="전체 선택·보류·완료 내역 초기화 · 2초 내 다시 누르면 취소"><span id="btnRestoreAllLabel" aria-live="polite">전체 초기화</span><span class="reset-action-state" id="btnRestoreAllState" aria-hidden="true">↺</span></button></div></div>
             <div id="boardContent" class="panel-body"></div>
         </section>
     </main>

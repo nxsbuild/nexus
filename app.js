@@ -118,18 +118,7 @@
     const AUTO_COST_SLOT_SET = new Set(AUTO_COST_ENTRIES.map(([id]) => clean(id)));
     const AUTO_COST_SLOT_RAWS = AUTO_COST_ENTRIES.map(([id]) => id);
     const AUTO_COST_RAW_MAP = Object.fromEntries(AUTO_COST_SLOT_RAWS.map(id => [clean(id), id]));
-    const INVENBOARD_EXPANSION_ATOMS = [
-        "죽음의머리", "검은망치", "광전사석상", "교란기", "라바사우르스",
-        "악령", "ARES", "정화자사도", "선동자", "브루탈리스크",
-        "짐레이너", "대천사", "제라툴", "거신", "케리건",
-        "스투코프", "오딘", "혼종파멸자", "분노수호자", "혼종약탈자",
-        "공허포격기"
-    ];
-    const INVENBOARD_EXPANSION_RAW_MAP = Object.fromEntries(INVENBOARD_EXPANSION_ATOMS.map(atom => [clean(atom), atom]));
-    const INVENBOARD_EXPANSION_ATOM_ID_SET = new Set(INVENBOARD_EXPANSION_ATOMS.map(clean));
-    const COSTBOARD_ATOM_ID_SET = new Set(SYSTEM_CONFIG.costboardAtoms.map(atom => clean(atom)));
-    const INVENBOARD_SLOT_SET = new Set([...COSTBOARD_ATOM_ID_SET, ...AUTO_COST_SLOT_SET]);
-    const ALL_INVENBOARD_SLOT_SET = new Set([...INVENBOARD_SLOT_SET, ...INVENBOARD_EXPANSION_ATOM_ID_SET]);
+    const COSTBOARD_COMPLETION_ID_SET = new Set([...SYSTEM_CONFIG.costboardAtoms.map(clean), ...AUTO_COST_SLOT_SET]);
     const CLEAN_ONE_TIME_UNITS = new Set((SYSTEM_CONFIG.oneTimeIds || []).map(clean));
     const CLEAN_PRESET_NOSTACK = new Set(Object.entries(_behaviors).filter(([, b]) => b.presetNoStack).map(([id]) => clean(id)));
     const CLEAN_PRESET_QTY_CAPS = Object.fromEntries(Object.entries(_behaviors)
@@ -138,7 +127,6 @@
     const CLEAN_UNIT_QTY_CAPS = Object.fromEntries(Object.entries(_behaviors)
         .map(([id, b]) => [clean(id), parseInt(b?.maxQty, 10)])
         .filter(([, cap]) => Number.isFinite(cap) && cap > 0));
-    const CLEAN_INVENBOARD_INSTANT_COMPLETE = new Set(Object.entries(_behaviors).filter(([, b]) => b.invenboardInstantComplete).map(([id]) => clean(id)));
     const BASIC_HIDDENBOARD_GRADES = new Set(["레어", "에픽", "유니크", "헬", "레전드"]);
     const isBasicHiddenboardGrade = (grade) => BASIC_HIDDENBOARD_GRADES.has(grade);
     const MATERIAL_REASON_LABEL = '재료';
@@ -181,23 +169,15 @@
             atoms: (Array.isArray(slot?.atoms) ? slot.atoms : [slot?.atom]).filter(Boolean)
         }))
         .filter(slot => slot.atoms.length > 0);
-    const INVENBOARD_EXPANSION_SLOT_DEFS = [
-        ...INVENBOARD_EXPANSION_ATOMS.slice(0, -1).map(atom => ({ atoms: [atom] })),
-        { atoms: ["공허포격기"] },
-        { atoms: [], empty: true },
-        { atoms: [], empty: true },
-        { atoms: [], empty: true },
-        { atoms: [], empty: true }
-    ];
     const GROUP_DEFS = SYSTEM_CONFIG.groupDefs;
     const titleToGridId = Object.fromEntries(GROUP_DEFS.map(g => [g.title, g.pid]));
     const unitMap = new Map(), activeUnits = new Map(), pausedUnits = new Map(), completedUnits = new Map(), depCache = new Map();
-    const completedTargets = new Map(), _invenboardAutoCompletedUnits = new Map(), _invenboardManualInputs = new Map(), _unitNativeLevels = new Map(), _unitRestoreLevels = new Map();
+    const completedTargets = new Map(), _unitNativeLevels = new Map(), _unitRestoreLevels = new Map();
     const _selectionResetRetainedCompleted = new Map();
     let _actionFeedbackTimer = null;
     const _depVisiting = new Set();
     const GRADE_INDEX_MAP = new Map(SYSTEM_CONFIG.grades.order.map((grade, index) => [grade, index]));
-    const _boardRequirementsCache = new Map(), _costboardTotalsCache = new Map(), _directInvenboardAtomNeedCache = new Map(), _unitEssencePartsCache = new Map();
+    const _boardRequirementsCache = new Map(), _costboardTotalsCache = new Map(), _unitEssencePartsCache = new Map();
     const _hiddenboardSlotElsByUid = new Map(), _unitCardElsByUid = new Map(), _favoriteBtnElsByUid = new Map(), _dirtyUnitCardIds = new Set();
     let _unitboardDomIndexed = false, _lastUnitboardQtyByUid = new Map();
     const PRESET_COLOR_MAP = {
@@ -261,8 +241,7 @@
     const _favorites = new Set((() => { try { return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); } catch(e) { return []; } })());
     let _unitboardCollection = null;
     let _activeTabIdx = 0, _currentViewMode = 'unitboard', _currentHighlight = null, _hideCompleted = false;
-    let _invenboardInputMode = 'auto', _isInvenboardSlotsExpanded = false;
-    let _cartTab = 'active', _isTabContentInitialized = false, _isHiddenboardRendered = false, _isInvenboardRendered = false;
+    let _cartTab = 'active', _isTabContentInitialized = false, _isHiddenboardRendered = false;
     let repeatTimer = null, repeatDelayTimer = null, _lastInteractionTime = 0, _currentAccelInterval = APP_INTERNAL.accelInterval, _touchHoldCount = 0;
     let updateTimer = null, _completeLock = new Set(), _presetUsed = new Map(), _restoreAllCooldown = false;
     let _restoreAllPendingTimer = null;
@@ -291,23 +270,9 @@
     const isUnitboardVisibleUnit = (u) => !!u && (getGradeIndex(u.grade) >= getUnitboardMinGradeIndex() || isUnitboardVisibleException(u.id));
     const isSelectableUnitboardUnit = (u) => isUnitboardVisibleUnit(u) && !isRestrictedUnit(u.id);
     const isOneTime = (u) => u && (CLEAN_ONE_TIME_UNITS.has(u.id) || getGradeIndex(u.grade) >= getGradeIndex(SYSTEM_CONFIG.policy.oneTimeMinGrade || "슈퍼히든"));
-    const isInvenboardInstantCompleteUnit = (uid) => CLEAN_INVENBOARD_INSTANT_COMPLETE.has(clean(uid));
     const getUnitId = (rawName) => clean(rawName);
-    const getCostboardAtomRawName = (uid) => ATOM_HASH[uid] || INVENBOARD_EXPANSION_RAW_MAP[uid] || AUTO_COST_RAW_MAP[uid] || uid;
+    const getCostboardAtomRawName = (uid) => ATOM_HASH[uid] || AUTO_COST_RAW_MAP[uid] || uid;
     const getCostboardSlotToneClass = (atoms) => atoms.some(atom => AUTO_COST_SLOT_SET.has(clean(atom))) ? 'is-skill-slot' : 'is-magic-slot';
-    const getInvenboardAtomGrade = (atom) => {
-        const id = clean(atom);
-        return AUTO_COST_SLOT_SET.has(id) ? '스킬사용' : (unitMap.get(id)?.grade || '');
-    };
-    const renderInvenboardGradeTag = (atom) => {
-        const grade = getInvenboardAtomGrade(atom);
-        return grade ? `<span class="invenboard-grade gtag grade-${grade}">${escapeHtml(grade)}</span>` : '';
-    };
-    const getInvenboardAtomNameStyle = (atom) => {
-        const grade = getInvenboardAtomGrade(atom);
-        const color = SYSTEM_CONFIG.grades.colors[grade];
-        return color ? ` style="color:${color};"` : '';
-    };
     const getUnitNameStyle = (unit) => {
         const color = SYSTEM_CONFIG.grades.colors[unit?.grade];
         return color ? `style="color:${color};"` : '';
@@ -433,14 +398,6 @@
         a.name.localeCompare(b.name);
     const getUnitsFromIds = (ids) => Array.from(ids).map(uid => unitMap.get(uid)).filter(Boolean);
     const getUnitsFromMap = (map) => getUnitsFromIds(map.keys()).sort(compareUnitForDisplay);
-    const getInvenboardTrackedTargets = (source = activeUnits) => {
-        const tracked = new Map(source instanceof Map ? source : []);
-        if (source === activeUnits) completedTargets.forEach((qty, uid) => {
-            const amount = Math.max(0, parseInt(qty, 10) || 0);
-            if (amount > 0) tracked.set(uid, (tracked.get(uid) || 0) + amount);
-        });
-        return tracked;
-    };
     const UNIT_ID_ALIASES = Object.freeze({ '테사다르': '태사다르', '케이다란초석': '케이다린초석' });
     const normalizeSavedId = (id) => {
         const normalized = typeof id === 'string' ? clean(id) : '';
@@ -475,76 +432,11 @@
             else setPositiveMapValue(map, uid, qty);
             return true;
         }
-        if (allowAutoCost && INVENBOARD_SLOT_SET.has(uid)) {
+        if (allowAutoCost && COSTBOARD_COMPLETION_ID_SET.has(uid)) {
             map.set(uid, qty);
             return true;
         }
         return false;
-    }
-
-    function consumeInvenboardAutoCompletedUnit(uid, qty) {
-        const amount = Math.max(0, parseInt(qty, 10) || 0);
-        if (amount <= 0 || !_invenboardAutoCompletedUnits.has(uid)) return;
-        const next = Math.max(0, (_invenboardAutoCompletedUnits.get(uid) || 0) - amount);
-        if (next > 0) _invenboardAutoCompletedUnits.set(uid, next);
-        else _invenboardAutoCompletedUnits.delete(uid);
-    }
-
-    function addInvenboardAutoCompletedUnit(uid, qty) {
-        const amount = Math.max(0, parseInt(qty, 10) || 0);
-        if (amount <= 0 || !unitMap.has(uid)) return;
-        _invenboardAutoCompletedUnits.set(uid, Math.max(0, _invenboardAutoCompletedUnits.get(uid) || 0) + amount);
-    }
-
-    function pruneInvenboardAutoCompletedUnits() {
-        for (const [uid, rawQty] of [..._invenboardAutoCompletedUnits.entries()]) {
-            const trackedQty = Math.max(0, parseInt(rawQty, 10) || 0);
-            const completedQty = Math.max(0, parseInt(completedUnits.get(uid), 10) || 0);
-            const nextQty = Math.min(trackedQty, completedQty);
-            if (nextQty > 0 && unitMap.has(uid) && !activeUnits.has(uid) && !completedTargets.has(uid)) {
-                _invenboardAutoCompletedUnits.set(uid, nextQty);
-            } else {
-                _invenboardAutoCompletedUnits.delete(uid);
-            }
-        }
-    }
-
-    function pruneInvenboardManualInputs() {
-        let changed = false;
-        for (const [rawId, rawQty] of [..._invenboardManualInputs.entries()]) {
-            _invenboardManualInputs.delete(rawId);
-            const id = normalizeSavedId(rawId);
-            const qty = Math.max(0, parseInt(rawQty, 10) || 0);
-            if (!id || !ALL_INVENBOARD_SLOT_SET.has(id) || qty <= 0) {
-                changed = true;
-                continue;
-            }
-            _invenboardManualInputs.set(id, qty);
-            if (id !== rawId || qty !== rawQty) changed = true;
-        }
-        return changed;
-    }
-
-    function clearInvenboardManualInputs(ids = ALL_INVENBOARD_SLOT_SET) {
-        let changed = false;
-        ids.forEach(id => {
-            if (_invenboardManualInputs.delete(id)) changed = true;
-        });
-        return changed;
-    }
-
-    function resetInvenboardAutoCompletedUnits() {
-        let changed = false;
-        for (const [uid, qty] of [..._invenboardAutoCompletedUnits.entries()]) {
-            if (!completedUnits.has(uid)) {
-                _invenboardAutoCompletedUnits.delete(uid);
-                continue;
-            }
-            subtractCompletedUnitQty(uid, qty);
-            changed = true;
-        }
-        pruneInvenboardAutoCompletedUnits();
-        return changed;
     }
 
     function sanitizeRuntimeState() {
@@ -558,15 +450,12 @@
         normalizeMap(pausedUnits);
         normalizeMap(completedTargets);
         normalizeMap(completedUnits, { allowAutoCost: true, keepCompletedQty: true });
-        normalizeMap(_invenboardAutoCompletedUnits, { keepCompletedQty: true });
-        pruneInvenboardManualInputs();
         pruneSelectionResetRetainedCompleted();
         activeUnits.forEach((_, uid) => pausedUnits.delete(uid));
         completedTargets.forEach((_, uid) => {
             activeUnits.delete(uid);
             pausedUnits.delete(uid);
         });
-        pruneInvenboardAutoCompletedUnits();
         if (!isValidCartTab(_cartTab)) _cartTab = 'active';
     }
 
@@ -623,7 +512,7 @@
 
     function initializeCacheEngine() {
         depCache.clear();
-        _boardRequirementsCache.clear(); _costboardTotalsCache.clear(); _directInvenboardAtomNeedCache.clear(); _unitEssencePartsCache.clear();
+        _boardRequirementsCache.clear(); _costboardTotalsCache.clear(); _unitEssencePartsCache.clear();
         unitMap.forEach(u => {
             u.parsedCost = [];
             if (u.cost && !IGNORE_PARSE_RECIPES.includes(u.cost)) {
@@ -661,8 +550,6 @@
             completed: [...completedUnits],
             selectionResetRetainedCompleted: [..._selectionResetRetainedCompleted],
             completedTargets: [...completedTargets],
-            invenboardAutoCompleted: [..._invenboardAutoCompletedUnits],
-            invenboardManualInputs: [..._invenboardManualInputs],
             cartTab: _cartTab,
             presetUsed: [..._presetUsed],
             hideCompleted: _hideCompleted
@@ -681,8 +568,6 @@
             completedUnits.clear();
             _selectionResetRetainedCompleted.clear();
             completedTargets.clear();
-            _invenboardAutoCompletedUnits.clear();
-            _invenboardManualInputs.clear();
             _presetUsed.clear();
 
             hydrateSavedUnitMap(state.active, activeUnits);
@@ -690,14 +575,6 @@
             hydrateSavedUnitMap(state.completed, completedUnits, { allowAutoCost: true, keepCompletedQty: true });
             hydrateSavedUnitMap(state.selectionResetRetainedCompleted, _selectionResetRetainedCompleted, { allowAutoCost: true, keepCompletedQty: true });
             hydrateSavedUnitMap(state.completedTargets, completedTargets);
-            hydrateSavedUnitMap(state.invenboardAutoCompleted, _invenboardAutoCompletedUnits, { keepCompletedQty: true });
-            if (Array.isArray(state.invenboardManualInputs)) {
-                state.invenboardManualInputs.forEach(([rawId, rawQty]) => {
-                    const id = normalizeSavedId(rawId);
-                    const qty = Math.max(0, parseInt(rawQty, 10) || 0);
-                    if (id && ALL_INVENBOARD_SLOT_SET.has(id) && qty > 0) _invenboardManualInputs.set(id, qty);
-                });
-            }
             _cartTab = isValidCartTab(state.cartTab) ? state.cartTab : 'active';
             if (Array.isArray(state.presetUsed)) {
                 state.presetUsed.forEach(([k, v]) => {
@@ -714,8 +591,6 @@
             completedUnits.clear();
             _selectionResetRetainedCompleted.clear();
             completedTargets.clear();
-            _invenboardAutoCompletedUnits.clear();
-            _invenboardManualInputs.clear();
             _presetUsed.clear();
         }
     }
@@ -1028,18 +903,17 @@
     function clampCompletedUnits(calcResult, costboardTotals = null) {
         pruneSelectionResetRetainedCompleted();
         const { baseMap, baseAutoCostReq } = calcResult || calculateBoardRequirements();
-        const resolvedCostboardTotals = costboardTotals || (_currentViewMode === 'invenboard' ? calculateInvenboardCostboardTotals() : calculateCostboardAtomTotals());
+        const resolvedCostboardTotals = costboardTotals || calculateCostboardAtomTotals();
         let changed = false;
         for (let [uid, rawQty] of [...completedUnits.entries()]) {
             const compQty = parseInt(rawQty, 10);
-            const isInvenboardSlot = ALL_INVENBOARD_SLOT_SET.has(uid);
+            const isCostboardAtom = COSTBOARD_COMPLETION_ID_SET.has(uid);
             const isUnitSlot = unitMap.has(uid);
-            if (!Number.isFinite(compQty) || compQty <= 0 || (!isUnitSlot && !isInvenboardSlot)) {
+            if (!Number.isFinite(compQty) || compQty <= 0 || (!isUnitSlot && !isCostboardAtom)) {
                 completedUnits.delete(uid);
                 changed = true;
                 continue;
             }
-            if (isInvenboardSlot && _currentViewMode === 'invenboard') continue;
             if (activeUnits.has(uid)) {
                 let maxAllow = Math.max(baseMap.get(uid) || activeUnits.get(uid) || 1, _selectionResetRetainedCompleted.get(uid) || 0);
                 if (compQty > maxAllow) { completedUnits.set(uid, maxAllow); changed = true; }
@@ -1061,17 +935,15 @@
         updateTimer = requestAnimationFrame(() => {
             let calcResult = calculateBoardRequirements();
             let costboardTotals = calculateCostboardAtomTotals();
-            let boardTotals = _currentViewMode === 'invenboard' ? calculateInvenboardCostboardTotals() : costboardTotals;
-            if (clampCompletedUnits(calcResult, boardTotals)) {
+            if (clampCompletedUnits(calcResult, costboardTotals)) {
                 calcResult = calculateBoardRequirements();
                 costboardTotals = calculateCostboardAtomTotals();
-                boardTotals = _currentViewMode === 'invenboard' ? calculateInvenboardCostboardTotals() : costboardTotals;
             }
             _lastCalcResult = calcResult;
             updateCostboard(costboardTotals);
             updateTabsUI();
             updateTabContentUI();
-            updateBoardPanel(calcResult, boardTotals);
+            updateBoardPanel(calcResult);
             updateCartUI();
             updatePresetBtns();
             // 독립 창은 원본 저장 데이터를 읽기만 하며 덮어쓰지 않는다.
@@ -1102,7 +974,7 @@
     function getGroupRestoreIds(level) {
         const ids = new Set();
         if (level >= 5) {
-            [completedTargets, completedUnits, _invenboardAutoCompletedUnits, _invenboardManualInputs].forEach(map => {
+            [completedTargets, completedUnits].forEach(map => {
                 map.forEach((qty, uid) => { if (qty > 0) ids.add(uid); });
             });
         } else {
@@ -1137,12 +1009,6 @@
         const next = Math.max(0, current - amount);
         if (next > 0) completedUnits.set(uid, next);
         else completedUnits.delete(uid);
-        if (ALL_INVENBOARD_SLOT_SET.has(uid) && _invenboardManualInputs.has(uid)) {
-            const manualNext = Math.max(0, (parseInt(_invenboardManualInputs.get(uid), 10) || 0) - amount);
-            if (manualNext > next && next > 0) _invenboardManualInputs.set(uid, manualNext);
-            else _invenboardManualInputs.delete(uid);
-        }
-        consumeInvenboardAutoCompletedUnit(uid, amount);
     }
 
     function deleteCompletedRecipe(uid, multiplier) {
@@ -1160,27 +1026,15 @@
         activeUnits.delete(uid);
         deleteCompletedRecipe(uid, qty || 1);
         completedUnits.delete(uid);
-        _invenboardAutoCompletedUnits.delete(uid);
     }
 
-    function resetInvenboardOwnedForUnit(uid, qty) {
-        const source = new Map([[uid, normalizeUnitQty(uid, qty) || 1]]);
-        const atoms = getInvenboardAtoms();
-        const { completedMap } = calculateInvenboardCostboardTotals(source, atoms);
-        atoms.forEach(atom => {
-            const amount = Math.max(0, parseInt(completedMap[atom], 10) || 0);
-            if (amount > 0) subtractCompletedUnitQty(clean(atom), amount);
-        });
-    }
 
     function releaseCompletedTarget(uid, { restoreToActive = false } = {}) {
         if (!completedTargets.has(uid) || !unitMap.has(uid)) return false;
         const qty = completedTargets.get(uid) || 1;
         completedTargets.delete(uid);
-        if (_currentViewMode === 'invenboard') resetInvenboardOwnedForUnit(uid, qty);
-        else deleteCompletedRecipe(uid, qty);
+        deleteCompletedRecipe(uid, qty);
         completedUnits.delete(uid);
-        _invenboardAutoCompletedUnits.delete(uid);
         if (restoreToActive) setActiveUnitQty(uid, qty);
         return true;
     }
@@ -1280,7 +1134,7 @@
 
         _restoreAllPendingTimer = setTimeout(() => {
             _restoreAllPendingTimer = null;
-            activeUnits.clear(); pausedUnits.clear(); completedUnits.clear(); _selectionResetRetainedCompleted.clear(); completedTargets.clear(); _invenboardAutoCompletedUnits.clear(); _invenboardManualInputs.clear();
+            activeUnits.clear(); pausedUnits.clear(); completedUnits.clear(); _selectionResetRetainedCompleted.clear(); completedTargets.clear();
             _presetUsed.clear(); updatePresetBtns(); commitNexusStateChange();
             if (!btn || !label) return;
             _restoreAllCooldown = true;
@@ -1299,8 +1153,6 @@
     function resetCompletedMaterialsByLevel(level) {
         getGroupRestoreIds(level).forEach(uid => {
             completedUnits.delete(uid);
-            _invenboardAutoCompletedUnits.delete(uid);
-            _invenboardManualInputs.delete(uid);
             _selectionResetRetainedCompleted.delete(uid);
         });
     }
@@ -1316,8 +1168,6 @@
             });
             completedUnits.clear();
             _selectionResetRetainedCompleted.clear();
-            _invenboardAutoCompletedUnits.clear();
-            _invenboardManualInputs.clear();
             _presetUsed.clear(); updatePresetBtns();
         } else {
             resetCompletedMaterialsByLevel(level);
@@ -1434,8 +1284,6 @@
         if (_isHiddenboardRendered) return;
         const boardEl = getEl('boardContent');
         if (!boardEl) return;
-        boardEl.classList.remove('invenboard-mode');
-        _isInvenboardRendered = false;
         const renderHiddenboardSlot = (id, n, g) => `<div class="hiddenboard-slot" id="d-slot-wrap-${id}" data-uid="${id}"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-hiddenboard="true"><span class="gtag grade-${g}">${g}</span><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond recipe-cond-offset">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
         const getGrp = (id, pid, title, resetLevel=0, isCol=false, alwaysShow=false, alwaysOpen=false, resetLabel='완료복구') => `
             <div class="hiddenboard-group" id="${id}" style="${alwaysShow ? '' : 'display:none;'}" ${alwaysShow ? 'data-always-show="true"' : ''} ${alwaysOpen ? 'data-always-open="true"' : ''}>
@@ -1493,199 +1341,10 @@
     }
 
     function updateBoardHeader() {
-        const layout = getEl('mainLayout');
-        const isHiddenboardView = _currentViewMode === 'hiddenboard';
-        const isInvenboardView = _currentViewMode === 'invenboard';
         const hiddenboardActions = getEl('hiddenboardGlobalActions');
-        const invenboardActions = getEl('invenboardHeaderActions');
-        if (layout) layout.classList.toggle('view-invenboard', isInvenboardView);
-        if (hiddenboardActions) hiddenboardActions.hidden = !isHiddenboardView;
-        if (invenboardActions) invenboardActions.hidden = !isInvenboardView;
+        if (hiddenboardActions) hiddenboardActions.hidden = _currentViewMode !== 'hiddenboard';
     }
 
-    function getInvenboardAtoms() {
-        return _isInvenboardSlotsExpanded ? [...SYSTEM_CONFIG.costboardAtoms, ...INVENBOARD_EXPANSION_ATOMS] : SYSTEM_CONFIG.costboardAtoms;
-    }
-
-    function getInvenboardSlotDefs() {
-        if (!_isInvenboardSlotsExpanded) return COSTBOARD_SLOT_DEFS;
-        const bottomSlotIds = new Set(["땅거미지뢰", "자동포탑", "우르사돈암", "우르사돈수", "갓오타", "메시브"].map(clean));
-        const isBottomSlot = (slot) => (slot.atoms || []).some(atom => bottomSlotIds.has(clean(atom)));
-        const upperSlots = COSTBOARD_SLOT_DEFS.filter(slot => !isBottomSlot(slot));
-        const bottomSlots = COSTBOARD_SLOT_DEFS.filter(isBottomSlot);
-        return [...upperSlots, ...INVENBOARD_EXPANSION_SLOT_DEFS, ...bottomSlots];
-    }
-
-    function getInvenboardSlotIdSet() {
-        return _isInvenboardSlotsExpanded ? ALL_INVENBOARD_SLOT_SET : INVENBOARD_SLOT_SET;
-    }
-
-    function getInvenboardInputStep(id) {
-        const cleanId = normalizeSavedId(id);
-        const special = SPECIAL_RENDER_LIST.find(entry => entry.id === cleanId);
-        return Math.max(1, parseInt(special?.batch, 10) || 1);
-    }
-
-    function normalizeInvenboardAmount(qty, maxQty) {
-        const parsed = parseInt(qty, 10);
-        if (!Number.isFinite(parsed) || parsed <= 0) return 0;
-        const limit = Math.max(0, parseInt(maxQty, 10) || 0);
-        if (limit <= 0) return 0;
-        return Math.min(parsed, limit);
-    }
-
-    function getEffectiveInvenboardCompletedSource(completedSource = completedUnits, activeSource = getInvenboardTrackedTargets(), targetMap = null) {
-        const effective = new Map(completedSource instanceof Map ? completedSource : new Map(completedSource || []));
-        const targetSource = activeSource instanceof Map ? activeSource : getInvenboardTrackedTargets();
-        const atomTargetMap = targetMap || calculateCostboardAtomTotals(new Map(), getInvenboardAtoms(), { activeSource: targetSource, preferRecipeAtoms: _isInvenboardSlotsExpanded }).targetMap;
-        ALL_INVENBOARD_SLOT_SET.forEach(id => {
-            if (!effective.has(id)) return;
-            const rawQty = Math.max(0, parseInt(effective.get(id), 10) || 0);
-            const maxQty = Math.max(0, parseInt(atomTargetMap[getCostboardAtomRawName(id)], 10) || 0);
-            const nextQty = Math.min(rawQty, maxQty);
-            if (nextQty > 0) effective.set(id, nextQty);
-            else effective.delete(id);
-        });
-        return effective;
-    }
-
-    function calculateInvenboardCostboardTotals(completedSource = completedUnits, options = {}) {
-        const activeSource = options.activeSource instanceof Map ? options.activeSource : getInvenboardTrackedTargets();
-        const atomList = getInvenboardAtoms(), preferRecipeAtoms = _isInvenboardSlotsExpanded;
-        const targetMap = options.targetMap || calculateCostboardAtomTotals(new Map(), atomList, { activeSource, preferRecipeAtoms }).targetMap;
-        const effectiveCompleted = options.rawCompleted === true ? completedSource : getEffectiveInvenboardCompletedSource(completedSource, activeSource, targetMap);
-        return calculateCostboardAtomTotals(effectiveCompleted, atomList, { ...options, activeSource, preferRecipeAtoms, targetMap });
-    }
-
-    function updateInvenboardSlotModeButton() {
-        const btn = getEl('invenboardSlotModeBtn');
-        if (!btn) return;
-        btn.innerHTML = `<span class="board-action-icon" aria-hidden="true">▦</span><span>${_isInvenboardSlotsExpanded ? '핵심재료 전환' : '전체재료 전환'}</span>`;
-        btn.setAttribute('aria-pressed', String(_isInvenboardSlotsExpanded));
-        btn.title = _isInvenboardSlotsExpanded ? '현재 전체 재료 표시 · 핵심재료로 전환' : '현재 핵심재료 표시 · 전체재료로 전환';
-        btn.classList.toggle('is-expanded', _isInvenboardSlotsExpanded);
-    }
-
-    function toggleInvenboardSlotMode() {
-        if (_currentViewMode !== 'invenboard') return;
-        _isInvenboardSlotsExpanded = !_isInvenboardSlotsExpanded;
-        _isInvenboardRendered = false;
-        const boardEl = getEl('boardContent');
-        if (boardEl) boardEl.innerHTML = '';
-        commitNexusStateChange();
-    }
-
-    function ensureInvenboardHeaderActions() {
-        const mobileHost = getEl('boardMobileHeader');
-        if (!mobileHost) return null;
-        let actions = getEl('invenboardHeaderActions');
-        if (!actions) {
-            actions = document.createElement('div');
-            actions.id = 'invenboardHeaderActions';
-            actions.className = 'invenboard-actions invenboard-header-actions';
-            actions.innerHTML = `<button type="button" class="pc-btn invenboard-complete-all" id="invenboardCompleteAllBtn" data-action="completeAllInvenboardUnits"><span class="board-action-icon" aria-hidden="true">✓</span><span>전체완료</span></button>
-                <button type="button" class="pc-btn invenboard-reset" data-action="resetInvenboardAmounts" title="재료 보유량 초기화"><span class="board-action-icon" aria-hidden="true">↺</span><span>보유량 초기화</span></button>
-                <button type="button" class="pc-btn invenboard-mode-input" id="invenboardInputModeBtn" data-action="toggleInvenboardInputMode">수동입력 전환</button>
-                <button type="button" class="pc-btn invenboard-slot-toggle" id="invenboardSlotModeBtn" data-action="toggleInvenboardSlotMode">전체재료 전환</button>`;
-        }
-        if (actions.parentElement !== mobileHost) mobileHost.appendChild(actions);
-        updateInvenboardSlotModeButton();
-        return actions;
-    }
-
-    function renderInvenboard() {
-        if (_isInvenboardRendered) return;
-        const boardEl = getEl('boardContent');
-        if (!boardEl) return;
-        _isHiddenboardRendered = false;
-        returnHiddenboardControlsToHeader();
-        ensureInvenboardHeaderActions();
-        boardEl.classList.remove('highlight-mode');
-        boardEl.classList.add('invenboard-mode');
-
-        const renderCostItem = (atom) => {
-            const id = clean(atom);
-            const safeName = escapeHtml(atom);
-            const inputStep = getInvenboardInputStep(id);
-            return `<div class="invenboard-item" id="invenboard-${id}" data-inven-id="${id}">
-                <div class="invenboard-main">
-                    <button type="button" class="invenboard-tap" data-action="invenboardAdd" data-inven-id="${id}" data-delta="${inputStep}" aria-label="${safeName} ${inputStep}보유">
-                        <span class="invenboard-count" id="inven-owned-${id}">-</span>
-                    </button>
-                    <div class="invenboard-manual-value">
-                        <input type="number" class="invenboard-input" id="inven-input-${id}" data-inven-id="${id}" min="0" step="1" inputmode="numeric" pattern="[0-9]*" aria-label="${safeName} 보유량">
-                    </div>
-                    ${renderInvenboardGradeTag(atom)}
-                    <span class="invenboard-name"${getInvenboardAtomNameStyle(atom)}>${safeName}</span>
-                </div>
-                <div class="invenboard-controls">
-                    <button type="button" class="pc-btn invenboard-plus" data-action="invenboardAdd" data-inven-id="${id}" data-delta="${inputStep}" aria-label="${safeName} ${inputStep}개 보유 추가">+${inputStep}</button>
-                    <button type="button" class="pc-btn invenboard-plus invenboard-plus10" data-action="invenboardAdd" data-inven-id="${id}" data-delta="10" aria-label="${safeName} 10개 보유 추가">+10</button>
-                </div>
-            </div>`;
-        };
-        const renderCostSlot = ({ atoms, empty }) => {
-            const atomList = (atoms || []).filter(Boolean);
-            if (empty || atomList.length === 0) return '<div class="invenboard-slot is-empty-slot" aria-hidden="true"></div>';
-            const slotIds = atomList.map(clean).join(',');
-            const slotClass = `invenboard-slot ${getCostboardSlotToneClass(atomList)}`;
-            if (atomList.length === 1) return `<div class="${slotClass}" data-slot-atoms="${slotIds}">${renderCostItem(atomList[0])}</div>`;
-            return `<div class="${slotClass} is-split-slot" data-slot-atoms="${slotIds}">${atomList.map(renderCostItem).join('<div class="invenboard-split-divider" aria-hidden="true"></div>')}</div>`;
-        };
-
-        boardEl.innerHTML = `<div id="invenboardEmpty" class="empty-msg"></div>
-            <div class="invenboard-grid" id="invenboardGrid">${getInvenboardSlotDefs().map(renderCostSlot).join('')}</div>`;
-        _isInvenboardRendered = true;
-    }
-
-    function getInvenboardMaxQty(id, totals = calculateInvenboardCostboardTotals()) {
-        if (!getInvenboardSlotIdSet().has(id)) return 0;
-        return Math.max(0, totals.targetMap[getCostboardAtomRawName(id)] || 0);
-    }
-
-    function getDirectInvenboardAtomNeed(uid, qty = 1) {
-        const amount = Math.max(1, parseInt(qty, 10) || 1);
-        const cacheKey = `${_isInvenboardSlotsExpanded ? 'expanded' : 'core'}:${uid}:${amount}`;
-        if (_directInvenboardAtomNeedCache.has(cacheKey)) return new Map(_directInvenboardAtomNeedCache.get(cacheKey));
-        const { targetMap } = calculateInvenboardCostboardTotals(new Map(), { activeSource: new Map([[uid, amount]]), rawCompleted: true });
-        const need = new Map(getInvenboardAtoms().map(atom => [clean(atom), Math.max(0, targetMap[atom] || 0)]).filter(([, n]) => n > 0));
-        _directInvenboardAtomNeedCache.set(cacheKey, need); limitCacheSize(_directInvenboardAtomNeedCache, 512);
-        return new Map(need);
-    }
-
-    function getInvenboardOwnedAtomMap({ directOnly = false } = {}) {
-        const available = new Map();
-        if (!directOnly) {
-            const totals = calculateInvenboardCostboardTotals();
-            getInvenboardAtoms().forEach(atom => {
-                const qty = Math.max(0, parseInt(totals.completedMap[atom], 10) || 0);
-                if (qty > 0) available.set(clean(atom), qty);
-            });
-            return available;
-        }
-
-        const effectiveCompleted = getEffectiveInvenboardCompletedSource(completedUnits);
-        getInvenboardAtoms().forEach(atom => {
-            const id = clean(atom);
-            const qty = Math.max(0, parseInt(effectiveCompleted.get(id), 10) || 0);
-            if (qty > 0) available.set(id, qty);
-        });
-        return available;
-    }
-
-    function getCompletedRecipeProgress(uid, qty) {
-        const unit = unitMap.get(uid);
-        if (!unit?.parsedRecipe?.length) return { hasRecipe: false, hasAnyCompleted: false, hasEnoughCompleted: false };
-        let hasAnyCompleted = false;
-        const hasEnoughCompleted = unit.parsedRecipe.every(child => {
-            if (!child.id) return true;
-            const needQty = (isToolRequirement(uid, child.id) ? 1 : child.qty) * qty;
-            const completedQty = Math.max(0, parseInt(completedUnits.get(child.id), 10) || 0);
-            if (completedQty > 0) hasAnyCompleted = true;
-            return completedQty >= needQty;
-        });
-        return { hasRecipe: true, hasAnyCompleted, hasEnoughCompleted };
-    }
 
     function getBoardDependencyDepths(source = activeUnits) {
         const depths = new Map();
@@ -1703,133 +1362,10 @@
         return depths;
     }
 
-    function getInvenboardMaterialCompletionCandidates(baseMap) {
-        const depths = getBoardDependencyDepths();
-        return [...baseMap.entries()]
-            .filter(([uid, qty]) =>
-                qty > 0 &&
-                unitMap.has(uid) &&
-                !activeUnits.has(uid) &&
-                !completedTargets.has(uid) &&
-                !ALL_INVENBOARD_SLOT_SET.has(uid) &&
-                (depths.get(uid) || 0) > 0
-            )
-            .map(([uid, qty]) => ({
-                unit: unitMap.get(uid),
-                qty,
-                depth: depths.get(uid) || 0
-            }))
-            .sort((a, b) =>
-                b.depth - a.depth ||
-                getGradeIndex(a.unit.grade) - getGradeIndex(b.unit.grade) ||
-                a.unit.name.localeCompare(b.unit.name)
-            );
-    }
-
-    function addCompletedMaterialUnit(uid, qty, { trackInvenboard = false } = {}) {
+    function addCompletedMaterialUnit(uid, qty) {
         const amount = Math.max(0, parseInt(qty, 10) || 0);
         if (amount <= 0) return;
         completedUnits.set(uid, Math.max(0, completedUnits.get(uid) || 0) + amount);
-        if (trackInvenboard) addInvenboardAutoCompletedUnit(uid, amount);
-    }
-
-    function getDirectInvenboardReadyQty(uid, maxQty, available = getInvenboardOwnedAtomMap({ directOnly: true })) {
-        const limit = Math.max(0, parseInt(maxQty, 10) || 0);
-        if (limit <= 0) return 0;
-        const perUnitNeed = getDirectInvenboardAtomNeed(uid, 1);
-        if (perUnitNeed.size === 0) return 0;
-        let readyQty = limit;
-        perUnitNeed.forEach((amount, id) => {
-            const need = Math.max(1, parseInt(amount, 10) || 1);
-            readyQty = Math.min(readyQty, Math.floor((available.get(id) || 0) / need));
-        });
-        return Math.max(0, readyQty);
-    }
-
-    function consumeAvailableInvenboardAtoms(available, uid, qty) {
-        const amount = Math.max(0, parseInt(qty, 10) || 0);
-        if (amount <= 0) return;
-        getDirectInvenboardAtomNeed(uid, 1).forEach((needQty, id) => {
-            const usedQty = Math.max(0, parseInt(needQty, 10) || 0) * amount;
-            const remain = Math.max(0, (available.get(id) || 0) - usedQty);
-            if (remain > 0) available.set(id, remain);
-            else available.delete(id);
-        });
-    }
-
-    function completeInvenboardMaterialUnitsIfReady() {
-        const candidates = getInvenboardMaterialCompletionCandidates(calculateBoardRequirements().baseMap);
-        if (!candidates.length) return false;
-        let changed = false;
-        const available = getInvenboardOwnedAtomMap({ directOnly: true });
-
-        for (const { unit, qty: requiredQty } of candidates) {
-            const uid = unit.id;
-            const currentCompleted = Math.max(0, parseInt(completedUnits.get(uid), 10) || 0);
-            const remainingQty = Math.max(0, requiredQty - currentCompleted);
-            if (remainingQty <= 0) continue;
-
-            if (isInvenboardInstantCompleteUnit(uid)) {
-                addCompletedMaterialUnit(uid, remainingQty, { trackInvenboard: true });
-                changed = true;
-                continue;
-            }
-
-            const recipeReadyQty = getCompletedRecipeReadyQty(uid, remainingQty);
-            if (recipeReadyQty > 0) {
-                deleteCompletedRecipe(uid, recipeReadyQty);
-                addCompletedMaterialUnit(uid, recipeReadyQty, { trackInvenboard: true });
-                changed = true;
-                continue;
-            }
-
-            const recipeProgress = getCompletedRecipeProgress(uid, 1);
-            if (recipeProgress.hasAnyCompleted) continue;
-            const directReadyQty = getDirectInvenboardReadyQty(uid, remainingQty, available);
-            if (directReadyQty <= 0) continue;
-            resetInvenboardOwnedForUnit(uid, directReadyQty);
-            consumeAvailableInvenboardAtoms(available, uid, directReadyQty);
-            addCompletedMaterialUnit(uid, directReadyQty, { trackInvenboard: true });
-            changed = true;
-        }
-        return changed;
-    }
-
-    function completeInvenboardTargetsIfReady() {
-        if (_currentViewMode !== 'invenboard' || activeUnits.size === 0) return false;
-
-        let changed = completeInvenboardMaterialUnitsIfReady();
-        const available = getInvenboardOwnedAtomMap({ directOnly: true });
-        const targets = getUnitsFromMap(activeUnits);
-        targets.forEach(unit => {
-            const uid = unit.id;
-            if (!activeUnits.has(uid)) return;
-            const activeQty = activeUnits.get(uid) || 1;
-            const recipeReadyQty = getCompletedRecipeReadyQty(uid, activeQty);
-            const directReadyQty = getDirectInvenboardReadyQty(uid, activeQty, available);
-            const hasAutoCompletedCostOnly = unit.parsedCost?.length && unit.parsedCost.every(pc => AUTO_COST_SLOT_SET.has(pc.key) && !COSTBOARD_ATOM_ID_SET.has(pc.key));
-            const completeInstantly = isInvenboardInstantCompleteUnit(uid);
-            const completeWithRecipe = recipeReadyQty >= activeQty;
-            const completeWithDirectAtoms = completeInstantly || (!getCompletedRecipeProgress(uid, 1).hasAnyCompleted && (directReadyQty >= activeQty || (hasAutoCompletedCostOnly && getDirectInvenboardAtomNeed(uid, 1).size === 0)));
-            if (!completeWithRecipe && !completeWithDirectAtoms) return;
-
-            if (completeWithRecipe) {
-                deleteCompletedRecipe(uid, activeQty);
-            } else if (!completeInstantly) {
-                resetInvenboardOwnedForUnit(uid, activeQty);
-                consumeAvailableInvenboardAtoms(available, uid, activeQty);
-            }
-            completedTargets.set(uid, activeQty);
-            activeUnits.delete(uid);
-            pausedUnits.delete(uid);
-            completedUnits.delete(uid);
-            _invenboardAutoCompletedUnits.delete(uid);
-            changed = true;
-        });
-
-        if (!changed) return false;
-        _currentHighlight = null;
-        return true;
     }
 
     function getCompletedRecipeReadyQty(uid, maxQty = 1) {
@@ -1900,8 +1436,7 @@
                         activeUnits.delete(uid);
                         pausedUnits.delete(uid);
                         completedUnits.delete(uid);
-                        _invenboardAutoCompletedUnits.delete(uid);
-                    } else {
+                                    } else {
                         completedUnits.set(uid, nextCompleted);
                     }
                 } else {
@@ -1920,158 +1455,7 @@
         return true;
     }
 
-    function setInvenboardAmount(id, qty, options = {}) {
-        const cleanId = normalizeSavedId(id);
-        if (!getInvenboardSlotIdSet().has(cleanId)) return;
-        const totals = calculateInvenboardCostboardTotals();
-        const maxQty = getInvenboardMaxQty(cleanId, totals);
-        const rawQty = normalizeInvenboardAmount(qty, Number.MAX_SAFE_INTEGER);
-        const nextQty = normalizeInvenboardAmount(rawQty, maxQty);
-        if (nextQty > 0) completedUnits.set(cleanId, nextQty);
-        else completedUnits.delete(cleanId);
-        if (options.preserveOverflow && rawQty > nextQty && maxQty > 0) _invenboardManualInputs.set(cleanId, rawQty);
-        else _invenboardManualInputs.delete(cleanId);
-        completeInvenboardTargetsIfReady();
-        commitNexusStateChange();
-    }
-
-    function changeInvenboardAmount(id, delta) {
-        const cleanId = normalizeSavedId(id);
-        if (!getInvenboardSlotIdSet().has(cleanId)) return;
-        const currentQty = completedUnits.get(cleanId) || 0;
-        setInvenboardAmount(cleanId, currentQty + (parseInt(delta, 10) || 0));
-    }
-
-    function toggleInvenboardInputMode() {
-        _invenboardInputMode = _invenboardInputMode === 'manual' ? 'auto' : 'manual';
-        updateInvenboard();
-    }
-
-    function resetInvenboardAmounts() {
-        let changed = false;
-        ALL_INVENBOARD_SLOT_SET.forEach(id => {
-            if (completedUnits.has(id)) {
-                completedUnits.delete(id);
-                changed = true;
-            }
-        });
-
-        if (resetInvenboardAutoCompletedUnits()) changed = true;
-        if (clearInvenboardManualInputs()) changed = true;
-
-        const completedTargetEntries = Array.from(completedTargets.entries());
-        if (completedTargetEntries.length > 0) {
-            completedTargets.clear();
-            completedTargetEntries.forEach(([uid, qty]) => {
-                if (!unitMap.has(uid)) return;
-                const restoreQty = qty || 1;
-                completedUnits.delete(uid);
-                setActiveUnitQty(uid, restoreQty);
-            });
-            changed = true;
-        }
-
-        if (!changed) return;
-        commitNexusStateChange({ clearHighlight: true });
-    }
-
-    function completeAllInvenboardUnits() {
-        if (_currentViewMode !== 'invenboard' || activeUnits.size === 0) return;
-        const totals = calculateInvenboardCostboardTotals();
-        ALL_INVENBOARD_SLOT_SET.forEach(id => completedUnits.delete(id));
-        clearInvenboardManualInputs();
-        getInvenboardAtoms().forEach(atom => {
-            const qty = Math.max(0, parseInt(totals.targetMap[atom], 10) || 0);
-            if (qty > 0) completedUnits.set(clean(atom), qty);
-        });
-        const targets = Array.from(activeUnits.entries()).filter(([uid]) => unitMap.has(uid));
-        if (targets.length === 0) return;
-        targets.forEach(([uid, qty]) => {
-            completedTargets.set(uid, normalizeUnitQty(uid, qty) || 1);
-            activeUnits.delete(uid);
-            pausedUnits.delete(uid);
-        });
-        commitNexusStateChange({ clearHighlight: true });
-    }
-
-    function updateInvenboard(costboardTotals = null) {
-        if (!_isInvenboardRendered) return;
-        const boardEl = getEl('boardContent');
-        if (!boardEl) return;
-        boardEl.classList.add('invenboard-mode');
-        const totals = costboardTotals || calculateInvenboardCostboardTotals();
-        const isManual = _invenboardInputMode === 'manual';
-
-        getInvenboardAtoms().forEach(atom => {
-            const id = clean(atom);
-            const needQty = Math.max(0, totals.targetMap[atom] || 0);
-            const directRawQty = Math.max(0, parseInt(completedUnits.get(id), 10) || 0);
-            const directOwnedQty = Math.min(directRawQty, needQty);
-            const manualInputQty = Math.max(0, parseInt(_invenboardManualInputs.get(id), 10) || 0);
-            const shownInputQty = Math.max(manualInputQty, directRawQty);
-            const ownedQty = Math.max(directOwnedQty, Math.max(0, parseInt(totals.completedMap[atom], 10) || 0));
-            const isDisabled = needQty <= 0 && ownedQty <= 0;
-            const isOverLimit = isManual && needQty > 0 && shownInputQty > needQty;
-            const remainQty = Math.max(0, needQty - Math.min(ownedQty, needQty));
-            const item = getEl(`invenboard-${id}`);
-            if (!item) return;
-            item.classList.toggle('active', !isDisabled);
-            item.classList.toggle('is-disabled', isDisabled);
-            item.classList.toggle('is-completed', ownedQty > 0 && remainQty === 0);
-            item.classList.toggle('is-manual', isManual);
-            item.classList.toggle('is-over-limit', isOverLimit);
-
-            const countEl = getEl(`inven-owned-${id}`);
-            const input = getEl(`inven-input-${id}`);
-            const tapBtn = item.querySelector('.invenboard-tap');
-            const plusBtns = item.querySelectorAll('.invenboard-plus');
-            const plus10 = item.querySelector('.invenboard-plus10');
-
-            if (countEl) {
-                countEl.textContent = isDisabled ? '-' : String(ownedQty);
-            }
-            if (input) {
-                const displayQty = isManual ? shownInputQty : ownedQty;
-                if (isDisabled || document.activeElement !== input) input.value = isDisabled ? '' : String(displayQty);
-                input.placeholder = isDisabled ? '-' : '';
-                input.max = String(Math.max(0, needQty));
-                input.readOnly = !isManual || needQty <= 0;
-                input.disabled = !isManual || isDisabled;
-                input.tabIndex = isManual && needQty > 0 ? 0 : -1;
-                input.classList.toggle('is-over-limit', isOverLimit);
-                input.title = isOverLimit ? `필요량 ${needQty} 초과: 계산에는 ${needQty}까지만 반영됩니다.` : '';
-                input.setAttribute('aria-invalid', isOverLimit ? 'true' : 'false');
-            }
-            if (tapBtn) tapBtn.disabled = isManual || needQty <= 0 || remainQty <= 0;
-            plusBtns.forEach(btn => { btn.disabled = needQty <= 0 || remainQty <= 0; });
-            if (plus10) plus10.disabled = needQty <= 0 || remainQty < 10;
-        });
-
-        document.querySelectorAll('.invenboard-slot').forEach(slot => {
-            const hasActive = !!slot.querySelector('.invenboard-item.active');
-            slot.classList.toggle('active', hasActive);
-            slot.classList.toggle('has-active', hasActive);
-        });
-
-        const modeBtn = getEl('invenboardInputModeBtn');
-        if (modeBtn) {
-            modeBtn.innerHTML = `<span class="board-action-icon" aria-hidden="true">⇄</span><span>${isManual ? '자동입력 전환' : '수동입력 전환'}</span>`;
-            modeBtn.setAttribute('aria-pressed', String(isManual));
-            modeBtn.title = isManual ? '현재 수동입력 · 자동입력으로 전환' : '현재 자동입력 · 수동입력으로 전환';
-            modeBtn.classList.toggle('is-manual', isManual);
-        }
-        updateInvenboardSlotModeButton();
-        const completeAllBtn = getEl('invenboardCompleteAllBtn');
-        if (completeAllBtn) completeAllBtn.disabled = activeUnits.size === 0;
-        const empty = getEl('invenboardEmpty');
-        if (empty) {
-            const isEmpty = activeUnits.size === 0 && completedTargets.size === 0;
-            empty.style.display = isEmpty ? 'block' : 'none';
-            if (isEmpty) empty.innerHTML = `<div class="empty-msg-enhanced"><div class="empty-main">유닛도감에서 유닛을 선택하세요</div></div>`;
-        }
-    }
-
-    function updateBoardPanel(calcResult, costboardTotals = null) {
+    function updateBoardPanel(calcResult) {
         updateBoardHeader();
         let autoCompleted = false;
         if (_currentViewMode === 'hiddenboard') {
@@ -2084,15 +1468,6 @@
             updateHiddenboard(calcResult || _lastCalcResult || calculateBoardRequirements());
             updateEmptyMsg();
             return autoCompleted;
-        }
-        if (_currentViewMode === 'invenboard') {
-            if (!_isInvenboardRendered) renderInvenboard();
-            if (completeInvenboardTargetsIfReady()) {
-                calcResult = calculateBoardRequirements();
-                costboardTotals = null;
-                autoCompleted = true;
-            }
-            updateInvenboard(costboardTotals);
         }
         return autoCompleted;
     }
@@ -3029,24 +2404,22 @@
         hideRecipeTooltip();
         const layout = getEl('mainLayout');
         if (!layout) return;
-        const nextMode = ['unitboard', 'hiddenboard', 'invenboard'].includes(mode) ? mode : 'unitboard';
+        const nextMode = ['unitboard', 'hiddenboard'].includes(mode) ? mode : 'unitboard';
         _currentViewMode = nextMode;
         const viewMeta = {
             unitboard: ['유닛도감', 'UNIT ARCHIVE', '목표를 고르세요. 완성까지 필요한 모든 조합을 연결합니다.'],
-            hiddenboard: ['히든보드', 'COMBINATION BOARD', '목표부터 기본 재료까지, 조합의 흐름을 한눈에 확인하세요.'],
-            invenboard: ['재료보드', 'MATERIAL INVENTORY', '보유한 재료를 기록하고, 완성할 수 있는 조합을 확인하세요.']
+            hiddenboard: ['히든보드', 'COMBINATION BOARD', '목표부터 기본 재료까지, 조합의 흐름을 한눈에 확인하세요.']
         }[nextMode];
         const title = getEl('workspaceTitle'), breadcrumb = getEl('workspaceBreadcrumb'), description = getEl('workspaceDescription');
         if (title) title.innerHTML = `${viewMeta[0]}<span class="heading-dot">.</span>`;
         if (breadcrumb) breadcrumb.textContent = viewMeta[1];
         if (description) description.textContent = viewMeta[2];
-        layout.classList.remove('view-unitboard', 'view-hiddenboard', 'view-invenboard');
+        layout.classList.remove('view-unitboard', 'view-hiddenboard');
         layout.classList.add(`view-${nextMode}`);
 
         const buttons = {
             unitboard: getEl('btnViewUnitboard'),
-            hiddenboard: getEl('btnViewHiddenboard'),
-            invenboard: getEl('btnViewInvenboard')
+            hiddenboard: getEl('btnViewHiddenboard')
         };
         Object.entries(buttons).forEach(([key, btn]) => {
             if (!btn) return;
@@ -3055,7 +2428,7 @@
             else btn.removeAttribute('aria-current');
         });
 
-        const autoCompleted = (nextMode === 'hiddenboard' || nextMode === 'invenboard')
+        const autoCompleted = nextMode === 'hiddenboard'
             ? ensureActiveBoardRendered(_lastCalcResult)
             : false;
         updateBoardHeader();
@@ -3147,7 +2520,7 @@
         trigger.setAttribute('aria-expanded', String(!popup.hidden));
     }
 
-    function showTooltipOverlay(tt, event, widthOffset = APP_INTERNAL.tooltipOffset, heightOffset = APP_INTERNAL.tooltipOffset, forceInsideClick = false) {
+    function showTooltipOverlay(tt, event, widthOffset = APP_INTERNAL.tooltipOffset, heightOffset = APP_INTERNAL.tooltipOffset, forceInsideClick = false, anchorEl = null) {
         let viewWidth = document.documentElement.clientWidth;
         tt.style.maxWidth = `${viewWidth - (APP_INTERNAL.tooltipMaxWidthPad)}px`;
         
@@ -3167,6 +2540,16 @@
             let y = (event?.clientY || event?.touches?.[0]?.clientY || window.innerHeight/2) + window.scrollY;
             let ttRect = tt.getBoundingClientRect(), ttWidth = ttRect.width || (APP_INTERNAL.tooltipFallbackWidth), ttHeight = ttRect.height || (APP_INTERNAL.tooltipFallbackHeight);
             const pad = APP_INTERNAL.tooltipScrollPad;
+            if (anchorEl) {
+                const anchor = anchorEl.getBoundingClientRect();
+                const maxLeft = window.scrollX + viewWidth - ttWidth - pad;
+                const below = anchor.bottom + window.scrollY + pad;
+                const above = anchor.top + window.scrollY - ttHeight - pad;
+                const maxTop = window.scrollY + window.innerHeight - ttHeight - pad;
+                tt.style.left = `${Math.max(window.scrollX + pad, Math.min(anchor.left + window.scrollX, maxLeft))}px`;
+                tt.style.top = `${below <= maxTop ? below : above >= window.scrollY + pad ? above : Math.max(window.scrollY + pad, maxTop)}px`;
+                return;
+            }
             tt.style.left = `${Math.max(window.scrollX + pad, Math.min(x, viewWidth + window.scrollX - ttWidth - widthOffset))}px`;
             tt.style.top = `${Math.max(window.scrollY + pad, Math.min(y, window.innerHeight + window.scrollY - ttHeight - heightOffset))}px`;
         });
@@ -3174,7 +2557,10 @@
 
     function showRecipeTooltip(id, event, isHiddenboard = false) {
         event?.stopPropagation(); const u = unitMap.get(id), tt = getEl('recipeTooltip'); if (!u || !tt) return;
-        
+        tt.classList.remove('is-guide');
+        delete tt.dataset.guide;
+        document.querySelectorAll('[data-action$="Guide"]').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
+
         const isClickInside = isInsideRecipeTooltip(event);
 
         let multi = 1;
@@ -3195,11 +2581,59 @@
         showTooltipOverlay(tt, event, APP_INTERNAL.tooltipOffset, APP_INTERNAL.tooltipOffset, isClickInside);
     }
 
-    
-    function hideRecipeTooltip() {
-        getEl('recipeTooltip')?.classList.remove('active');
+    function showBoardGuideTooltip(board, event) {
+        event?.stopPropagation();
+        const tt = getEl('recipeTooltip');
+        const guideBtn = event?.target?.closest?.('[data-action$="Guide"]');
+        if (!tt || !guideBtn) return;
+        if (tt.classList.contains('active') && tt.classList.contains('is-guide') && tt.dataset.guide === board) {
+            hideRecipeTooltip();
+            return;
+        }
+
+        const guides = {
+            hiddenboard: {
+                title: '히든 보드 사용법',
+                items: [
+                    ['유닛 선택', '유닛 도감에서 카드를 선택하면 최종 목표와 필요 재료가 자동 계산됩니다.'],
+                    ['조합법 확인', '유닛 이름을 클릭하면 선택한 수량에 맞는 조합법이 표시됩니다.'],
+                    ['재료 집중표시', '카드 상단 재료 태그를 클릭하면 관련 재료가 집중표시됩니다. 다시 클릭하면 해제됩니다.'],
+                    ['완료 처리', '1개·10개·완료 버튼으로 수량을 반영합니다. 재료 조건을 충족하면 상위 조합의 완료 상태도 자동 반영됩니다.'],
+                    ['완료 숨기기', '완료된 재료 카드를 숨기며 최종 목표 카드는 유지됩니다.'],
+                    ['그룹 관리·복구', '그룹 제목을 눌러 접거나 펼치고, 각 그룹의 복구 버튼으로 완료 내역을 되돌립니다.'],
+                    ['전체 초기화', '선택·보류·완료 내역을 초기화합니다. 실행 전 2초 동안 다시 누르면 취소할 수 있습니다.']
+                ]
+            },
+            unitboard: {
+                title: '유닛 도감 사용법',
+                items: [
+                    ['유닛 선택', '유닛 카드를 클릭하면 조합 목표에 추가되고, 다시 클릭하면 선택이 해제됩니다.'],
+                    ['목표 수량 조절', '선택한 유닛의 +·− 버튼으로 목표 수량을 변경합니다. 일부 유닛은 수량 조절이 제한됩니다.'],
+                    ['즐겨찾기', '카드의 별표를 누르면 즐겨찾기에 등록되며, 별표를 다시 누르면 해제됩니다.'],
+                    ['검색·커맨드', '검색창에 유닛 이름이나 커맨드를 입력하고 Enter를 누르면 해당 유닛이 추가됩니다.'],
+                    ['프리셋', '검색창 아래 프리셋 버튼으로 등록된 커맨드를 실행합니다.'],
+                    ['전체 선택', '현재 분류(또는 즐겨찾기)의 유닛을 한 번에 선택하거나 해제합니다.'],
+                    ['선택 초기화', '현재 선택한 목표만 해제합니다. 보류·완료 내역과 재료 진행도는 유지됩니다.']
+                ]
+            }
+        };
+        const guide = guides[board];
+        if (!guide) return;
+        tt.classList.add('is-guide');
+        tt.dataset.guide = board;
+        tt.innerHTML = `<div class="tooltip-header">${guide.title}</div><div class="tooltip-body guide-tooltip-list">${guide.items.map(([title, description], index) => `<div class="guide-tooltip-item"><span class="guide-tooltip-number">${String(index + 1).padStart(2, '0')}</span><div class="guide-tooltip-content"><span class="guide-tooltip-title">${title}</span><span class="guide-tooltip-description">${description}</span></div></div>`).join('')}</div><div class="tooltip-footer"><span class="tooltip-footer-close">빈 공간 터치/클릭 또는 ESC로 닫기</span></div>`;
+        document.querySelectorAll('[data-action$="Guide"]').forEach(btn => btn.setAttribute('aria-expanded', String(btn === guideBtn)));
+        showTooltipOverlay(tt, event, APP_INTERNAL.tooltipOffset, APP_INTERNAL.tooltipOffset, false, guideBtn);
     }
 
+    function hideRecipeTooltip() {
+        const tt = getEl('recipeTooltip');
+        if (tt) {
+            tt.classList.remove('active', 'is-guide');
+            delete tt.dataset.guide;
+        }
+        document.querySelectorAll('[data-action$="Guide"]').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
+    }
 
     /* 이벤트 바인딩 */
     ['pointerup','pointercancel','touchend','touchcancel','mouseup','contextmenu'].forEach(evt => { document.addEventListener(evt, stopSmartChange); document.addEventListener(evt, stopFontHold); });
@@ -3215,25 +2649,14 @@
         if (!e.target.closest('.gh-fontsize-ctrl')) closeFontSizePopup();
         const actionEl = e.target.closest('[data-action]');
         if (!actionEl) {
-            const invenInput = e.target?.closest?.('.invenboard-input[data-inven-id]');
-            if (invenInput && !invenInput.readOnly && !invenInput.disabled) invenInput.select();
             if (_currentHighlight) toggleHighlight(null);
             if (getEl('recipeTooltip')?.classList.contains('active') && !e.target.closest('#recipeTooltip')) hideRecipeTooltip();
             return;
         }
 
-        const action = actionEl.dataset.action, uid = actionEl.dataset.uid, invenId = actionEl.dataset.invenId;
+        const action = actionEl.dataset.action, uid = actionEl.dataset.uid;
         switch (action) {
             case 'switchMainView': switchLayout(actionEl.dataset.view); break;
-            case 'invenboardAdd':
-                if (_invenboardInputMode === 'manual' && e.target?.closest?.('.invenboard-input')) break;
-                e.stopPropagation();
-                changeInvenboardAmount(invenId, parseInt(actionEl.dataset.delta || '1', 10));
-                break;
-            case 'toggleInvenboardInputMode': e.stopPropagation(); toggleInvenboardInputMode(); break;
-            case 'resetInvenboardAmounts': e.stopPropagation(); resetInvenboardAmounts(); break;
-            case 'completeAllInvenboardUnits': e.stopPropagation(); completeAllInvenboardUnits(); break;
-            case 'toggleInvenboardSlotMode': e.stopPropagation(); toggleInvenboardSlotMode(); break;
             case 'runPreset':
                 const idx = parseInt(actionEl.dataset.presetIdx, 10), preset = SYSTEM_CONFIG.presets[idx];
                 if (preset && !(preset.oneTime && _presetUsed.get(idx))) {
@@ -3250,6 +2673,8 @@
             case 'increaseFont': if (e.detail === 0) setFontScale(_fontScale + APP_INTERNAL.fontScaleStep); break;
             case 'decreaseFont': if (e.detail === 0) setFontScale(_fontScale - APP_INTERNAL.fontScaleStep); break;
             case 'switchPresetTab': _presetTab = actionEl.dataset.tab; renderPresetButtons(); break;
+            case 'showHiddenboardGuide': showBoardGuideTooltip('hiddenboard', e); break;
+            case 'showUnitboardGuide': showBoardGuideTooltip('unitboard', e); break;
             case 'toggleHideCompleted':
                 _hideCompleted = !_hideCompleted;
                 updateHideCompletedBtn();
@@ -3292,18 +2717,6 @@
             case 'hideRecipeTooltip': e.stopPropagation(); hideRecipeTooltip(); break;
             case 'showRecipeTooltip': e.stopPropagation(); showRecipeTooltip(uid, e, actionEl.dataset.isHiddenboard === 'true'); break;
         }
-    });
-
-    document.addEventListener('input', e => {
-        const input = e.target?.closest?.('.invenboard-input[data-inven-id]');
-        if (!input || _invenboardInputMode !== 'manual') return;
-        setInvenboardAmount(input.dataset.invenId, input.value, { preserveOverflow: true });
-    });
-
-    document.addEventListener('focusin', e => {
-        const input = e.target?.closest?.('.invenboard-input[data-inven-id]');
-        if (!input || input.readOnly || input.disabled) return;
-        setTimeout(() => input.select(), 0);
     });
 
     document.addEventListener('pointerdown', e => {

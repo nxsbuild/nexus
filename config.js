@@ -25,7 +25,7 @@ window.NEXUS_USER_CONFIG = {
         "갓오타": { skillUseRender: true, batch: 1 },
         "메시브": { skillUseRender: true, batch: 1 },
         "자동포탑": { skillUseRender: true, batch: 5 },
-        "유물": { maxQty: 1, presetNoStack: true, invenboardInstantComplete: true },
+        "유물": { maxQty: 1, presetNoStack: true },
         "황제의증인": { maxQty: 2 },
         "자이언트플라워": { presetMaxQty: 3 },
         "데하카의오른팔": { excludeEssence: true }
@@ -47,7 +47,7 @@ window.NEXUS_USER_CONFIG = {
         "광부": "랜덤 버프 · 최대 1마리",
         "황제의증인": "은폐 탐지 · 최대 2마리",
         "젤나가암살기사": "암살(즉시 처치) · 최대 1마리",
-        "오벨 리스크": "재화 수급(XP·광물등) · 최대 1마리"
+        "오벨 리스크": "재화 수급 (XP · 광물 등) · 최대 1마리"
     },
 
     /* 직접 선택 제한
