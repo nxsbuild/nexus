@@ -52,7 +52,7 @@ svg { display:block; width:20px; height:20px; flex-shrink:0; }
 .gh-title.is-transitioning { opacity:0; transform:translateY(2px); }
 .gh-title.is-version-view .gh-title-main { font-family:var(--font-mono); }
 .nav-eyebrow { display:none; margin:0 12px 14px; color:#bfc5d1; font-size:9px; letter-spacing:1.6px; }
-.gh-center { display:flex; flex:1 1 auto; min-width:0; flex-direction:row; justify-content:center; gap:6px; }
+.gh-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); display:flex; flex-direction:row; justify-content:center; gap:6px; }
 .gh-nav-btn { display:flex; align-items:center; gap:8px; width:auto; min-height:40px; padding:10px 14px; border:0; border-radius:9px; background:transparent; color:#bbc2cf; text-align:left; transition:background .18s,color .18s; }
 .gh-nav-btn:hover { background:#1d1e24; color:#eee3c7; }
 .gh-nav-btn.active { background:linear-gradient(115deg,#f1d9b4,#ddbc8c); color:#201b12;  box-shadow:0 4px 22px #c49a3820,inset 0 1px 0 #fff2c965; }
@@ -66,7 +66,7 @@ svg { display:block; width:20px; height:20px; flex-shrink:0; }
 .sidebar-note p { font-size:13px; line-height:1.85; color:#bfc5d1; }
 .sidebar-note strong { color:#d8c8a1; }
 .sidebar-note-caption { display:block; margin-top:14px; font:8px var(--font-mono); letter-spacing:1px; color:#bfc5d1; }
-.gh-right { display:flex; flex:0 0 auto; align-items:center; gap:8px; margin:0; }
+.gh-right { display:flex; flex:0 0 auto; align-items:center; gap:8px; margin:0 0 0 auto; }
 .gh-tool-btn { display:inline-flex; align-items:center; justify-content:center; flex:0 0 34px; width:34px; height:34px; padding:0; border:1px solid #444047; border-radius:8px; background:#17171c; color:#e6c89e; text-decoration:none; font:17px var(--font-mono); line-height:1; }
 .gh-tool-btn:hover,.gh-tool-btn[aria-expanded="true"] { border-color:var(--accent); background:#28231c; color:#fff0cb; }
 /* 태블릿·모바일에서는 조합·재료 독립 창 실행 버튼을 숨긴다. 독립 창 내부의 닫기 버튼은 유지. */
@@ -102,10 +102,9 @@ svg { display:block; width:20px; height:20px; flex-shrink:0; }
     .gh-title-label { font-size:9.75px; }
     .gh-title-main { font-size:14px; }
     .nav-eyebrow,.sidebar-note { display:none; }
-    .gh-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); flex-direction:row; gap:5px; margin:0; }
+    .gh-center { gap:5px; }
     .gh-nav-btn { width:auto; min-height:40px; padding:10px 12px; gap:8px; }
     .gh-nav-label { font-size:12px; }
-    .gh-right { margin-top:0; margin-left:auto; }
     .gh-fontsize-popup { top:calc(100% + 9px); bottom:auto; }
 }
 @media (max-width:767px) {
@@ -120,7 +119,7 @@ svg { display:block; width:20px; height:20px; flex-shrink:0; }
     .gh-title-main { font-size:12.5px; }
     .gh-title-stack { flex-direction:column; align-items:flex-start; gap:2px; height:28px; }
     .nav-eyebrow,.sidebar-note { display:none; }
-    .gh-center { display:grid; width:100%; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin:0 auto; }
+    .gh-center { position:static; transform:none; display:grid; width:100%; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; margin:0 auto; }
     .gh-nav-btn { justify-content:center; padding:10px 3px; min-height:40px; gap:7px; border-radius:7px; }
     .gh-nav-btn svg { width:15px; height:15px; }
     .gh-nav-label { font-size:12px; }
