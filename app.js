@@ -129,7 +129,6 @@
         .filter(([, cap]) => Number.isFinite(cap) && cap > 0));
     const BASIC_HIDDENBOARD_GRADES = new Set(["레어", "에픽", "유니크", "헬", "레전드"]);
     const isBasicHiddenboardGrade = (grade) => BASIC_HIDDENBOARD_GRADES.has(grade);
-    const MATERIAL_REASON_LABEL = '재료';
     const TOOL_REASON_LABEL_HTML = '<span class="tool-badge">[도구]</span>';
     const REASON_GRADE_ORDER = ["슈퍼히든", "고유히든", "히든", "레전드", "헬", "유니크", "에픽", "레어", "매직"];
     const REASON_GRADE_RANK = new Map(REASON_GRADE_ORDER.map((grade, index) => [grade, index]));
@@ -157,7 +156,7 @@
             reasonCenterHtml: center
         };
     };
-    const createMaterialReasonInfo = (parentUid, options = {}) => createHiddenboardReasonInfo(parentUid, name => `${escapeHtml(name)} ${MATERIAL_REASON_LABEL}`, options);
+    const createMaterialReasonInfo = (parentUid, options = {}) => createHiddenboardReasonInfo(parentUid, name => escapeHtml(name), options);
     const createToolReasonInfo = (parentUid, options = {}) => createHiddenboardReasonInfo(parentUid, name => `${escapeHtml(name)} ${TOOL_REASON_LABEL_HTML}`, options);
     const AUTO_COMPLETE_IDS = SPECIAL_RENDER_LIST.map(e => e.id);
     const CLEAN_SPECIAL_CONDITIONS = Object.fromEntries(Object.entries(SYSTEM_CONFIG.specialConditions).map(([k, v]) => [clean(k), v]));
@@ -241,6 +240,7 @@
     const _favorites = new Set((() => { try { return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); } catch(e) { return []; } })());
     let _unitboardCollection = null;
     let _activeTabIdx = 0, _currentViewMode = 'unitboard', _currentHighlight = null, _hideCompleted = false;
+    let _highlightGroupState = null;
     let _cartTab = 'active', _isTabContentInitialized = false, _isHiddenboardRendered = false;
     let repeatTimer = null, repeatDelayTimer = null, _lastInteractionTime = 0, _currentAccelInterval = APP_INTERNAL.accelInterval, _touchHoldCount = 0, _smartChangePointerCardUid = null;
     let updateTimer = null, _completeLock = new Set(), _presetUsed = new Map(), _restoreAllCooldown = false;
@@ -473,10 +473,11 @@
     }
 
     /* 조합식 표시 생성 */
+    const formatConditionText = (raw) => String(raw || '').split(',').map(part => part.trim()).filter(Boolean).join(' · ');
     function renderStackedRecipeRow(name, conditions, qty = null, color = '') {
         const style = color ? ` style="color:${color};"` : '';
         const quantity = qty === null ? '' : `<span class="badge-qty">· ${qty}개</span>`;
-        const lines = conditions.map(text => `<span class="badge-cond">${escapeHtml(text.trim())}</span>`).join('');
+        const lines = `<span class="badge-cond">${escapeHtml(conditions.map(text => text.trim()).filter(Boolean).join(' · '))}</span>`;
         return `<div class="recipe-badge recipe-badge-stacked"${style}><span class="recipe-badge-name">${escapeHtml(name)}</span><div class="recipe-badge-main"><div class="recipe-badge-conditions">${lines}</div>${quantity}</div></div>`;
     }
     function formatRecipe(item, multi = 1, showSep = false) {
@@ -490,7 +491,7 @@
                 if (CLEAN_SPECIAL_CONDITIONS[unitId]) {
                     condHtml = `<span class="badge-special-cond">특수조건</span>`;
                     if (!foundSpecialIds.includes(unitId)) foundSpecialIds.push(unitId);
-                } else if (m[2]) condHtml = `<span class="badge-cond">${m[2].replace(/,/g, ' ')}</span>`;
+                } else if (m[2]) condHtml = `<span class="badge-cond">${escapeHtml(formatConditionText(m[2]))}</span>`;
                 const isTool = isToolRequirement(item.id, unitId);
                 const qtyNum = isTool ? 1 : (m[3] ? parseInt(m[3], 10) : 1) * multi;
                 const color = u ? SYSTEM_CONFIG.grades.colors[u.grade] : 'var(--text)';
@@ -500,7 +501,7 @@
                     return renderStackedRecipeRow(m[1].trim(), conditions, qtyNum, color);
                 }
                 if (showSep && m[2] && !CLEAN_SPECIAL_CONDITIONS[unitId]) {
-                    return `<div class="recipe-badge" style="color:${color};"><span class="recipe-badge-name">${m[1].trim()}</span>${toolHtml}<span class="badge-cond recipe-cond-offset">${m[2].replace(/,/g, ' ')}</span><span class="badge-qty-wrap"><span class="badge-qty">· ${qtyNum}개</span></span></div>`;
+                    return `<div class="recipe-badge" style="color:${color};"><span class="recipe-badge-name">${m[1].trim()}</span>${toolHtml}<span class="badge-cond recipe-cond-offset">${escapeHtml(formatConditionText(m[2]))}</span><span class="badge-qty-wrap"><span class="badge-qty">· ${qtyNum}개</span></span></div>`;
                 }
                 return `<div class="recipe-badge" style="color:${color};"><span class="recipe-badge-name">${m[1].trim()}</span>${toolHtml}<span class="badge-qty-wrap">${condHtml}<span class="badge-qty">· ${qtyNum}개</span></span></div>`;
             }
@@ -1280,7 +1281,7 @@
         if (_isHiddenboardRendered) return;
         const boardEl = getEl('boardContent');
         if (!boardEl) return;
-        const renderHiddenboardSlot = (id, n, g) => `<div class="hiddenboard-slot" id="d-slot-wrap-${id}" data-uid="${id}"><div class="d-reason-wrap" id="d-reason-${id}"></div><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-hiddenboard="true"><span class="gtag grade-${g}">${g}</span><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond recipe-cond-offset">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
+        const renderHiddenboardSlot = (id, n, g) => `<div class="hiddenboard-slot" id="d-slot-wrap-${id}" data-uid="${id}"><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-hiddenboard="true"><div class="d-grade-row"><span class="gtag grade-${g}">${g}</span><button type="button" class="d-target-badge" data-action="toggleHighlight" data-uid="${id}" aria-label="${n} 최종 목표 재료 추적" aria-pressed="false" title="최종 목표 재료 집중 표시" hidden>최종목표</button></div><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond recipe-cond-offset">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div class="d-reason-wrap" id="d-reason-${id}"></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
         const getGrp = (id, pid, title, resetLevel=0, isCol=false, alwaysShow=false, alwaysOpen=false, resetLabel='완료복구') => `
             <div class="hiddenboard-group" id="${id}" style="${alwaysShow ? '' : 'display:none;'}" ${alwaysShow ? 'data-always-show="true"' : ''} ${alwaysOpen ? 'data-always-open="true"' : ''}>
                 <div class="hiddenboard-group-title" data-action="toggleGroup" data-grid-id="${pid}">
@@ -1483,10 +1484,10 @@
         return updateBoardPanel(calcResult || _lastCalcResult || calculateBoardRequirements());
     }
 
-    function wrapHiddenboardGridPages(grid, pageSize) {
+    function wrapHiddenboardGridPages(grid, pageSize, onlyVisible = false) {
         if (!grid) return;
         const items = Array.from(grid.children).filter(el =>
-            el.classList.contains('hiddenboard-slot')
+            el.classList.contains('hiddenboard-slot') && (!onlyVisible || el.style.display !== 'none')
         );
         if (items.length === 0) return;
         const size = Math.max(1, pageSize || items.length);
@@ -1538,22 +1539,20 @@
                 .filter(entry => entry.info?.depth === 0 || entry.displayQty > 0)
                 .map(entry => [entry.rId, { ...entry.info, displayQty: entry.displayQty, _reasonOrder: entry.index }]);
         };
-        const getReasonTagClass = (info) => info?.depth === 0 ? 'tag-target' : (info?.tagClass || DEFAULT_REASON_TAG_CLASS);
+        const getReasonTagClass = (info) => info?.tagClass || DEFAULT_REASON_TAG_CLASS;
         const isSplitReason = (info) => info?.depth !== 0 && !!info?.reasonCenterHtml;
         const renderReasonTagContent = (info) => {
-            if (!isSplitReason(info)) {
-                const qtyText = info?.depth !== 0 && info?.displayQty > 0 ? ` <span class="d-reason-qty">${info.displayQty}개</span>` : '';
-                return `${info.text}${qtyText}`;
-            }
+            if (!isSplitReason(info)) return info.text;
             return [
                 `<span class="d-reason-grade">${escapeHtml(info.reasonGrade || '')}</span>`,
                 `<span class="d-reason-main">${info.reasonCenterHtml}</span>`,
-                `<span class="d-reason-qty">${info.displayQty}개</span>`
+                `<span class="d-reason-qty">×${info.displayQty}</span>`
             ].join('');
         };
         
         const targetHighlight = _currentHighlight || null;
         const highlightDeps = targetHighlight ? getDependencies(targetHighlight) : null;
+        getEl('boardContent')?.classList.toggle('highlight-mode', !!targetHighlight);
         
         activeUnits.forEach((_, uid) => unitMap.get(uid)?.parsedRecipe?.forEach(pr => pr.id && activeUnits.has(pr.id) && mergedSlots.add(pr.id)));
         const directMaterials = new Set();
@@ -1657,13 +1656,13 @@
             if (rCon) {
                 let rMap = reasonMap.get(id);
                 if (rMap && rMap.size > 0 && needed > 0) {
-                    let allEntries = getCachedReasonEntries(id, rMap).slice();
-                    if (isTarget && !isAutoCost && !isMergedSlot) allEntries = allEntries.filter(([, i]) => i.depth === 0);
+                    // 최종 목표는 카드 상단 배지에서 추적하며, 하단에는 사용처만 표시합니다.
+                    let allEntries = getCachedReasonEntries(id, rMap).filter(([, info]) => info.depth !== 0);
+                    if (isTarget && !isMergedSlot) allEntries = [];
                     if (_currentHighlight) {
                         const filtered = allEntries.filter(([, i]) =>
                             i.parentUid === targetHighlight ||
-                            (highlightDeps && highlightDeps.has(i.parentUid)) ||
-                            i.depth === 0
+                            (highlightDeps && highlightDeps.has(i.parentUid))
                         );
                         if (filtered.length > 0) allEntries = filtered;
                     }
@@ -1675,9 +1674,11 @@
                         );
                         rCon.style.display = 'flex';
                         rCon.classList.toggle('is-target-only', sorted.every(([, i]) => i.depth === 0));
-                        rCon.innerHTML = sorted.map(([rId,i]) => {
-                            const splitTagClass = isSplitReason(i) ? ' is-split-reason' : '';
-                            return `<button type="button" class="d-reason-tag ${getReasonTagClass(i)}${splitTagClass}" data-action="toggleHighlight" data-uid="${rId.replace(/^(TARGET_|MAT_|TOOL_|AUTO_)/,'')}">${renderReasonTagContent(i)}</button>`;
+                        rCon.innerHTML = sorted.map(([rId, info], index) => {
+                            const splitTagClass = isSplitReason(info) ? ' is-split-reason' : '';
+                            const firstUsage = index === 0;
+                            const usageLabel = firstUsage ? '<span class="d-reason-caption">사용처</span>' : '';
+                            return `${usageLabel}<button type="button" class="d-reason-tag ${getReasonTagClass(info)}${splitTagClass}" data-action="toggleHighlight" data-uid="${rId.replace(/^(TARGET_|MAT_|TOOL_|AUTO_)/,'')}">${renderReasonTagContent(info)}</button>`;
                         }).join('');
                     } else {
                         rCon.style.display = 'none';
@@ -1690,7 +1691,7 @@
             const cEl = slotEl.querySelector(`#d-cond-${id}`);
             if (cEl) {
                 let rMap = reasonMap.get(id);
-                let condMap = new Map();
+                const condMap = new Map();
 
                 if (rMap) {
                     getCachedReasonEntries(id, rMap).forEach(([, info]) => {
@@ -1699,7 +1700,7 @@
                             const pUid = info.parentUid;
                             if (pUid !== targetHighlight && (!highlightDeps || !highlightDeps.has(pUid))) return;
                         }
-                        let cleanCond = info.cond.replace(/,/g, ' ').trim();
+                        const cleanCond = formatConditionText(info.cond);
                         if (!cleanCond) return;
                         condMap.set(cleanCond, (condMap.get(cleanCond) || 0) + info.displayQty);
                     });
@@ -1707,28 +1708,17 @@
 
                 if (condMap.size > 0) {
                     cEl.style.display = 'flex';
-                    let htmlArr = [];
-                    condMap.forEach((qty, condStr) => {
-                        htmlArr.push(`<div class="d-condition-row"><span class="d-cond-text">${escapeHtml(condStr)}</span><span class="d-cond-qty">${qty}개</span></div>`);
-                    });
-                    cEl.innerHTML = htmlArr.join('');
+                    cEl.innerHTML = '<span class="d-reason-caption">조합 조건</span>' +
+                        Array.from(condMap, ([condStr, qty]) => `<div class="d-condition-row"><span class="d-cond-text">${escapeHtml(condStr)}</span><span class="d-cond-qty">${qty}개</span></div>`).join('');
                 } else {
                     cEl.style.display = 'none';
                     cEl.innerHTML = '';
                 }
             }
 
-            const cWrap = slotEl.querySelector(`#craft-wrap-${id}`);
             const isCompleted = needed === 0;
             slotEl.classList.toggle('has-target', !isCompleted);
             slotEl.classList.toggle('is-completed', isCompleted);
-
-            if (cWrap) {
-                if (!isCompleted) {
-                    const tenDisabled = needed >= 10 ? '' : ' disabled';
-                    cWrap.innerHTML = `<div class="craft-wrap-left"><span class="req-text">${needed}</span><span class="req-label">개</span></div><div class="craft-wrap-right"><button type="button" class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="1"><span class="batch-plus" aria-hidden="true">+</span>1개</button><button type="button" class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="10"${tenDisabled}><span class="batch-plus" aria-hidden="true">+</span>10개</button><button type="button" class="btn-complete" data-action="completeUnit" data-uid="${id}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m5 12 4 4 10-10"/></svg>완료</button></div>`;
-                } else cWrap.innerHTML = `<div class="craft-wrap-left"><span class="req-text">0</span><span class="req-label">개</span></div><div class="craft-wrap-right"><span class="complete-done-label">완료됨</span></div>`;
-            }
 
             let tGrid = null;
 
@@ -1760,10 +1750,31 @@
             tGrid = upgradedGrid || nativeGrid;
             if (!tGrid) return null;
 
+            const isFinalGoal = tGrid === grids.target;
+            slotEl.classList.toggle('is-final-goal', isFinalGoal);
+            const cWrap = slotEl.querySelector(`#craft-wrap-${id}`);
+            if (cWrap) {
+                if (!isCompleted) {
+                    const tenDisabled = needed >= 10 ? '' : ' disabled';
+                    const qtyButtons = isFinalGoal ? '' : `<button type="button" class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="1"><span class="batch-plus" aria-hidden="true">+</span>1개</button><button type="button" class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="10"${tenDisabled}><span class="batch-plus" aria-hidden="true">+</span>10개</button>`;
+                    cWrap.innerHTML = `<div class="craft-wrap-left"><span class="req-text">${needed}</span><span class="req-label">개</span></div><div class="craft-wrap-right">${qtyButtons}<button type="button" class="btn-complete" data-action="completeUnit" data-uid="${id}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m5 12 4 4 10-10"/></svg>완료</button></div>`;
+                } else cWrap.innerHTML = `<div class="craft-wrap-left"><span class="req-text">0</span><span class="req-label">개</span></div><div class="craft-wrap-right"><span class="complete-done-label">완료됨</span></div>`;
+            }
+
+            const targetBadge = slotEl.querySelector('.d-target-badge');
+            if (targetBadge) {
+                const isTracking = isFinalGoal && targetHighlight === id;
+                targetBadge.hidden = !isFinalGoal;
+                targetBadge.classList.toggle('is-tracking', isTracking);
+                targetBadge.setAttribute('aria-pressed', String(isTracking));
+                targetBadge.title = isTracking ? '목표 재료 집중 표시 해제' : '최종 목표 재료 집중 표시';
+            }
+
             const gridId = tGrid?.id || '';
             _unitRestoreLevels.set(id, restoreLevelsByGridId[gridId] || 0);
             const keepCompletedVisible = excludeGridIds.includes(gridId);
-            const hideT = _hideCompleted && isCompleted && !keepCompletedVisible;
+            const hideT = (_hideCompleted && isCompleted && !keepCompletedVisible) ||
+                (!!highlightDeps && !highlightDeps.has(id));
             if (tGrid) {
                 if (!hideT) {
                     slotEl.classList.add('is-visible');
@@ -1807,23 +1818,33 @@
             children.forEach(el => grid.appendChild(el));
         });
 
-        Object.values(grids).forEach(g => wrapHiddenboardGridPages(g, 9));
+        Object.values(grids).forEach(g => wrapHiddenboardGridPages(g, 9, !!targetHighlight));
 
         Object.values(grids).forEach(g => {
             if (!g) return;
             const grp = g.closest('.hiddenboard-group'), icon = grp?.querySelector('.grp-toggle-icon');
             if (!grp) return;
             
-            grp.style.display = 'block';
-            
             const slots = Array.from(g.querySelectorAll('.hiddenboard-slot'));
             const visibleSlots = slots.filter(el => el.style.display !== 'none');
 
-            if (visibleSlots.length === 0 && grp.dataset.alwaysShow !== 'true') {
+            if (targetHighlight) {
+                // 추적 중에는 관련 카드가 없는 카테고리 자체를 감춥니다.
+                grp.style.display = visibleSlots.length > 0 ? 'block' : 'none';
+                if (visibleSlots.length > 0) {
+                    grp.classList.remove('collapsed');
+                    g.style.display = 'grid';
+                    if (icon) icon.style.transform = 'rotate(0deg)';
+                }
+            } else if (visibleSlots.length === 0 && grp.dataset.alwaysShow !== 'true') {
+                grp.style.display = 'block';
                 g.style.display = 'none'; grp.classList.add('collapsed'); if (icon) icon.style.transform = 'rotate(-90deg)';
             }
-            else if (visibleSlots.length > 0 && grp.dataset.alwaysOpen === 'true') {
-                grp.classList.remove('collapsed'); g.style.display = 'grid'; if (icon) icon.style.transform = 'rotate(0deg)';
+            else {
+                grp.style.display = 'block';
+                if (visibleSlots.length > 0 && grp.dataset.alwaysOpen === 'true') {
+                    grp.classList.remove('collapsed'); g.style.display = 'grid'; if (icon) icon.style.transform = 'rotate(0deg)';
+                }
             }
 
             const badge = getEl(`grp-count-${g.id}`);
@@ -1833,6 +1854,18 @@
             const done = countBase.filter(el => el.classList.contains('is-completed')).length;
             badge.textContent = total > 0 ? `${done} / ${total}` : '';
         });
+
+        if (!targetHighlight && _highlightGroupState) {
+            _highlightGroupState.forEach((state, groupId) => {
+                const grp = getEl(groupId), grid = grp?.querySelector('.hiddenboard-grid');
+                if (!grp || !grid) return;
+                grp.classList.toggle('collapsed', state.collapsed);
+                grid.style.display = state.gridDisplay;
+                const icon = grp.querySelector('.grp-toggle-icon');
+                if (icon) icon.style.transform = state.collapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+            });
+            _highlightGroupState = null;
+        }
 
         _hiddenboardSlotElsByUid.forEach((el, cleanId) => {
             el.classList.toggle('highlighted-tree', !!_currentHighlight && highlightDeps?.has(cleanId));
@@ -1871,6 +1904,15 @@
             _currentHighlight = null;
             board.classList.remove('highlight-mode');
         } else {
+            if (!_currentHighlight) {
+                // 추적 종료 시 사용자가 접어둔 카테고리 상태를 되돌립니다.
+                _highlightGroupState = new Map(Array.from(board.querySelectorAll('.hiddenboard-group'), grp => [
+                    grp.id, {
+                        collapsed: grp.classList.contains('collapsed'),
+                        gridDisplay: grp.querySelector('.hiddenboard-grid')?.style.display || ''
+                    }
+                ]));
+            }
             _currentHighlight = uid;
             board.classList.add('highlight-mode');
         }
@@ -1927,10 +1969,11 @@
         return `<button type="button" class="uc-fav-btn${isFav ? ' is-fav' : ''}" data-action="toggleFavorite" data-uid="${id}" aria-pressed="${isFav}" aria-label="${escapeHtml(name)} 즐겨찾기 ${isFav ? '해제' : '추가'}">${isFav ? '★' : '☆'}</button>`;
     }
     function buildCardControl(item, prefix, isRestricted, isOT) {
+        const selection = `<span class="uc-selection-state"><span class="selection-check" aria-hidden="true">✓</span><span class="selection-status-label">목표 선택</span></span>`;
         const control = !isOT && !isRestricted
-            ? `<div class="smart-stepper" id="stepper-${prefix}${item.id}" role="group" aria-label="${item.name} 수량"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1" aria-label="${item.name} 감소" disabled><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6"/></svg></button><div class="ss-val" id="val-unit-${prefix}${item.id}" aria-live="polite">0</div><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1" aria-label="${item.name} 추가"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m10 6 6 6-6 6"/></svg></button></div>`
+            ? `<div class="smart-stepper" id="stepper-${prefix}${item.id}"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1" aria-label="${item.name} 감소">−</button><div class="ss-val" id="val-unit-${prefix}${item.id}" aria-live="polite">−</div><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1" aria-label="${item.name} 추가">+</button></div>`
             : `<span class="uc-limit">${isRestricted ? '직접 선택 제한' : '최대 1개'}</span>`;
-        return `<div class="uc-ctrl-area">${control}</div>`;
+        return `<div class="uc-ctrl-area">${selection}${control}</div>`;
     }
 
     function getUnitEssenceParts(item) {
@@ -1956,22 +1999,23 @@
     function buildCard(item, prefix = '') {
         const isRestricted = isRestrictedUnit(item.id), isOT = isOneTime(item);
         const essenceText = getUnitUnitboardEssenceText(item);
-        const infoSections = [];
+        const notes = [];
         if (isRestricted) {
             const parents = Array.from(unitMap.values()).filter(parent => parent.parsedRecipe?.some(ingredient => ingredient.id === item.id));
             const parentNames = parents.length ? parents.map(parent => parent.name).join('·') : '상위 유닛';
-            infoSections.push({ label: '선택 안내', text: `${parentNames} 조합에 자동 포함 · 직접 선택 불가` });
+            notes.push(`${parentNames} 조합에 자동 포함 · 직접 선택 불가`);
         }
         const condition = CLEAN_UNIT_CONDITIONS[item.id];
-        if (condition) infoSections.push({ label: '유닛 정보', text: condition });
-        const unitInfoHtml = infoSections.map(info => `<div class="uc-unit-info"><span class="uc-unit-info-label">${info.label}</span><p>${escapeHtml(info.text)}</p></div>`).join('');
+        if (condition) notes.push(condition);
+        const noticeHtml = notes.length ? `<div class="uc-notes">${notes.map(note => `<div class="uc-note"><span>${escapeHtml(note)}</span></div>`).join('')}</div>` : '';
         const recipeHtml = formatRecipe(item, 1, false);
-        return `<article id="card-${prefix}${item.id}" class="unit-card${isRestricted ? ' is-excluded' : ''}" data-grade="${item.grade}" data-action="toggleUnit" data-uid="${item.id}" tabindex="0" role="group" aria-label="${item.name} ${isRestricted ? '선택 제한' : '선택'}">` +
+        return `<article id="card-${prefix}${item.id}" class="unit-card${isRestricted ? ' is-excluded' : ''}" data-grade="${item.grade}" data-action="toggleUnit" data-uid="${item.id}" tabindex="0" role="group" aria-label="${item.name} ${isRestricted ? '선택 제한' : '목표 선택'}">` +
             `<div class="uc-card-inner"><div class="uc-head">` +
             `<div class="uc-meta-row"><span class="gtag grade-${item.grade}">${item.grade}</span>${isRestricted ? '<span class="badge-excluded"><svg class="badge-excluded-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>선택제한</span>' : ''}${starBtnHtml(item.id)}</div>` +
             `<h3 class="uc-name-row">${item.name}</h3>` +
+            noticeHtml +
             `${essenceText ? `<div>${essenceText}</div>` : ''}</div>` +
-            `<div class="uc-recipe-area"><span class="recipe-label">COMBINATION</span>${recipeHtml}${unitInfoHtml}</div>` +
+            `<div class="uc-recipe-area"><span class="recipe-label">조합 조건</span>${recipeHtml}</div>` +
             `${buildCardControl(item, prefix, isRestricted, isOT)}</div></article>`;
     }
 
@@ -2062,13 +2106,15 @@
             (_unitCardElsByUid.get(uid) || []).forEach(card => {
                 if (!item) return;
                 if (!isOneTime(item)) {
-                    const nv = isActive ? String(activeUnits.get(uid)) : '0';
+                    const nv = isActive ? String(activeUnits.get(uid)) : '-';
                     card.querySelectorAll('.ss-val').forEach(v => { if (v.innerText !== nv) v.innerText = nv; });
-                    card.querySelectorAll('.smart-stepper button').forEach(b => { b.disabled = Number(b.dataset.delta) < 0 && !isActive; });
+                    card.querySelectorAll('.smart-stepper button').forEach(b => { b.disabled = !isActive; });
                 }
                 card.style.display = 'flex';
                 card.classList.toggle('active', isActive);
-                card.setAttribute('aria-label', `${item.name} · ${isRestrictedUnit(uid) ? '선택 제한' : isActive ? '선택 해제' : '선택'}`);
+                card.setAttribute('aria-label', `${item.name} · ${isActive ? '선택됨' : '목표 선택'}`);
+                const status = card.querySelector('.selection-status-label');
+                if (status) status.textContent = isRestrictedUnit(uid) ? '선택 제한' : isActive ? '선택됨' : '목표 선택';
             });
             (_favoriteBtnElsByUid.get(uid) || []).forEach(btn => {
                 btn.classList.toggle('is-fav', isFav);
@@ -2361,7 +2407,7 @@
             const items = getUnitsFromMap(activeUnits);
             cartListArea.innerHTML = actionHtml + items.map(item => {
                 const qty = activeUnits.get(item.id) || 1;
-                const qtyHtml = !isOneTime(item) ? `<div class="cart-item-stepper smart-stepper" role="group" aria-label="${item.name} 수량"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1" aria-label="${item.name} 감소"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6"/></svg></button><span class="ci-val ss-val" id="${prefix}-val-${item.id}" aria-live="polite">${qty}</span><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1" aria-label="${item.name} 추가"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m10 6 6 6-6 6"/></svg></button></div>` : `<span class="ci-onetime">×${qty}</span>`;
+                const qtyHtml = !isOneTime(item) ? `<div class="cart-item-stepper"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1">-</button><span class="ci-val" id="${prefix}-val-${item.id}">${qty}</span><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1">+</button></div>` : `<span class="ci-onetime">×${qty}</span>`;
                 return `<div class="cart-item" id="${prefix}-${item.id}"><div class="cart-unit-info"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name" ${getUnitNameStyle(item)}>${item.name}</span></div>${qtyHtml}<button type="button" class="cart-item-pause-btn" data-action="pauseCartItem" data-uid="${item.id}">보류</button><button type="button" class="cart-item-del" data-action="removeActiveUnit" data-uid="${item.id}">제거</button></div>`;
             }).join('');
             return;
@@ -2591,7 +2637,7 @@
                 items: [
                     ['유닛 선택', '유닛 도감에서 카드를 선택하면 최종 목표와 필요 재료가 자동 계산됩니다.'],
                     ['조합법 확인', '유닛 이름을 클릭하면 선택한 수량에 맞는 조합법이 표시됩니다.'],
-                    ['재료 집중표시', '카드 상단 재료 태그를 클릭하면 관련 재료가 집중표시됩니다. 다시 클릭하면 해제됩니다.'],
+                    ['재료 집중표시', '카드 하단 사용처 태그를 클릭하면 관련 재료가 집중표시됩니다. 다시 클릭하면 해제됩니다.'],
                     ['완료 처리', '1개·10개·완료 버튼으로 수량을 반영합니다. 재료 조건을 충족하면 상위 조합의 완료 상태도 자동 반영됩니다.'],
                     ['완료 숨기기', '완료된 재료 카드를 숨기며 최종 목표 카드는 유지됩니다.'],
                     ['그룹 관리·복구', '그룹 제목을 눌러 접거나 펼치고, 각 그룹의 복구 버튼으로 완료 내역을 되돌립니다.'],
