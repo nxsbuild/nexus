@@ -112,8 +112,8 @@
     const CLEAN_TOOLS_MAP = Object.fromEntries(Object.entries(SYSTEM_CONFIG.tools).map(([k, v]) => [clean(k), v.map(clean)]));
     const CLEAN_RESTRICTED_IDS = makeCleanSet(SYSTEM_CONFIG.search.restrictedIds || []);
     const CLEAN_UNITBOARD_VISIBLE_EXCEPTION_IDS = makeCleanSet(SYSTEM_CONFIG.unitboard.visibleExceptionIds || []);
-    const _behaviors = SYSTEM_CONFIG.unitBehaviors || {};
-    const AUTO_COST_ENTRIES = Object.entries(_behaviors).filter(([, b]) => b.skillUseRender);
+    const _behaviors = Object.fromEntries(Object.entries(SYSTEM_CONFIG.unitBehaviors || {}).map(([id, behavior]) => [clean(id), behavior]));
+    const AUTO_COST_ENTRIES = Object.entries(SYSTEM_CONFIG.unitBehaviors || {}).filter(([, b]) => b.skillUseRender);
     const SPECIAL_RENDER_LIST = AUTO_COST_ENTRIES.map(([id, b]) => ({ id: clean(id), raw: id, batch: b.batch || 1 }));
     const AUTO_COST_SLOT_SET = new Set(AUTO_COST_ENTRIES.map(([id]) => clean(id)));
     const AUTO_COST_SLOT_RAWS = AUTO_COST_ENTRIES.map(([id]) => id);
@@ -242,7 +242,7 @@
     let _unitboardCollection = null;
     let _activeTabIdx = 0, _currentViewMode = 'unitboard', _currentHighlight = null, _hideCompleted = false;
     let _cartTab = 'active', _isTabContentInitialized = false, _isHiddenboardRendered = false;
-    let repeatTimer = null, repeatDelayTimer = null, _lastInteractionTime = 0, _currentAccelInterval = APP_INTERNAL.accelInterval, _touchHoldCount = 0;
+    let repeatTimer = null, repeatDelayTimer = null, _lastInteractionTime = 0, _currentAccelInterval = APP_INTERNAL.accelInterval, _touchHoldCount = 0, _smartChangePointerCardUid = null;
     let updateTimer = null, _completeLock = new Set(), _presetUsed = new Map(), _restoreAllCooldown = false;
     let _restoreAllPendingTimer = null;
     let _lastCalcResult = null;
@@ -743,10 +743,6 @@
     function syncPresetUsageState() {
         let changed = false;
         SYSTEM_CONFIG.presets.forEach((preset, idx) => {
-            if (!preset.oneTime) {
-                if (_presetUsed.delete(idx)) changed = true;
-                return;
-            }
             const used = isPresetActiveInCart(preset);
             if (used) {
                 if (!_presetUsed.get(idx)) {
@@ -1546,13 +1542,13 @@
         const isSplitReason = (info) => info?.depth !== 0 && !!info?.reasonCenterHtml;
         const renderReasonTagContent = (info) => {
             if (!isSplitReason(info)) {
-                const qtyText = info?.depth !== 0 && info?.displayQty > 0 ? ` <span class="d-reason-qty">· ${info.displayQty} 개</span>` : '';
+                const qtyText = info?.depth !== 0 && info?.displayQty > 0 ? ` <span class="d-reason-qty">${info.displayQty}개</span>` : '';
                 return `${info.text}${qtyText}`;
             }
             return [
                 `<span class="d-reason-grade">${escapeHtml(info.reasonGrade || '')}</span>`,
                 `<span class="d-reason-main">${info.reasonCenterHtml}</span>`,
-                `<span class="d-reason-qty">${info.displayQty} 개</span>`
+                `<span class="d-reason-qty">${info.displayQty}개</span>`
             ].join('');
         };
         
@@ -1681,7 +1677,7 @@
                         rCon.classList.toggle('is-target-only', sorted.every(([, i]) => i.depth === 0));
                         rCon.innerHTML = sorted.map(([rId,i]) => {
                             const splitTagClass = isSplitReason(i) ? ' is-split-reason' : '';
-                            return `<span class="d-reason-tag ${getReasonTagClass(i)}${splitTagClass}" data-action="toggleHighlight" data-uid="${rId.replace(/^(TARGET_|MAT_|TOOL_|AUTO_)/,'')}">${renderReasonTagContent(i)}</span>`;
+                            return `<button type="button" class="d-reason-tag ${getReasonTagClass(i)}${splitTagClass}" data-action="toggleHighlight" data-uid="${rId.replace(/^(TARGET_|MAT_|TOOL_|AUTO_)/,'')}">${renderReasonTagContent(i)}</button>`;
                         }).join('');
                     } else {
                         rCon.style.display = 'none';
@@ -1711,11 +1707,9 @@
 
                 if (condMap.size > 0) {
                     cEl.style.display = 'flex';
-                    cEl.style.flexDirection = 'column';
-                    cEl.style.gap = '2px';
                     let htmlArr = [];
                     condMap.forEach((qty, condStr) => {
-                        htmlArr.push(`<span>${condStr} <span class="d-cond-qty">· ${qty}개</span></span>`);
+                        htmlArr.push(`<div class="d-condition-row"><span class="d-cond-text">${escapeHtml(condStr)}</span><span class="d-cond-qty">${qty}개</span></div>`);
                     });
                     cEl.innerHTML = htmlArr.join('');
                 } else {
@@ -1732,7 +1726,7 @@
             if (cWrap) {
                 if (!isCompleted) {
                     const tenDisabled = needed >= 10 ? '' : ' disabled';
-                    cWrap.innerHTML = `<div class="craft-wrap-left"><span class="req-text">${needed}</span><span class="req-label">개</span></div><div class="craft-wrap-right"><button type="button" class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="1">1개</button><button type="button" class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="10"${tenDisabled}>10개</button><button type="button" class="btn-complete" data-action="completeUnit" data-uid="${id}">완료</button></div>`;
+                    cWrap.innerHTML = `<div class="craft-wrap-left"><span class="req-text">${needed}</span><span class="req-label">개</span></div><div class="craft-wrap-right"><button type="button" class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="1"><span class="batch-plus" aria-hidden="true">+</span>1개</button><button type="button" class="pc-btn" data-action="addComplete" data-uid="${id}" data-batch="10"${tenDisabled}><span class="batch-plus" aria-hidden="true">+</span>10개</button><button type="button" class="btn-complete" data-action="completeUnit" data-uid="${id}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m5 12 4 4 10-10"/></svg>완료</button></div>`;
                 } else cWrap.innerHTML = `<div class="craft-wrap-left"><span class="req-text">0</span><span class="req-label">개</span></div><div class="craft-wrap-right"><span class="complete-done-label">완료됨</span></div>`;
             }
 
@@ -1933,11 +1927,10 @@
         return `<button type="button" class="uc-fav-btn${isFav ? ' is-fav' : ''}" data-action="toggleFavorite" data-uid="${id}" aria-pressed="${isFav}" aria-label="${escapeHtml(name)} 즐겨찾기 ${isFav ? '해제' : '추가'}">${isFav ? '★' : '☆'}</button>`;
     }
     function buildCardControl(item, prefix, isRestricted, isOT) {
-        const selection = `<span class="uc-selection-state"><span class="selection-check" aria-hidden="true">✓</span><span class="selection-status-label">목표 선택</span></span>`;
         const control = !isOT && !isRestricted
-            ? `<div class="smart-stepper" id="stepper-${prefix}${item.id}"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1" aria-label="${item.name} 감소">−</button><div class="ss-val" id="val-unit-${prefix}${item.id}" aria-live="polite">−</div><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1" aria-label="${item.name} 추가">+</button></div>`
+            ? `<div class="smart-stepper" id="stepper-${prefix}${item.id}" role="group" aria-label="${item.name} 수량"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1" aria-label="${item.name} 감소" disabled><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6"/></svg></button><div class="ss-val" id="val-unit-${prefix}${item.id}" aria-live="polite">0</div><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1" aria-label="${item.name} 추가"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m10 6 6 6-6 6"/></svg></button></div>`
             : `<span class="uc-limit">${isRestricted ? '직접 선택 제한' : '최대 1개'}</span>`;
-        return `<div class="uc-ctrl-area">${selection}${control}</div>`;
+        return `<div class="uc-ctrl-area">${control}</div>`;
     }
 
     function getUnitEssenceParts(item) {
@@ -1963,23 +1956,22 @@
     function buildCard(item, prefix = '') {
         const isRestricted = isRestrictedUnit(item.id), isOT = isOneTime(item);
         const essenceText = getUnitUnitboardEssenceText(item);
-        const notes = [];
+        const infoSections = [];
         if (isRestricted) {
             const parents = Array.from(unitMap.values()).filter(parent => parent.parsedRecipe?.some(ingredient => ingredient.id === item.id));
             const parentNames = parents.length ? parents.map(parent => parent.name).join('·') : '상위 유닛';
-            notes.push(`${parentNames} 조합에 자동 포함 · 직접 선택 불가`);
+            infoSections.push({ label: '선택 안내', text: `${parentNames} 조합에 자동 포함 · 직접 선택 불가` });
         }
         const condition = CLEAN_UNIT_CONDITIONS[item.id];
-        if (condition) notes.push(condition);
-        const noticeHtml = notes.length ? `<div class="uc-notes">${notes.map(note => `<div class="uc-note"><span>${escapeHtml(note)}</span></div>`).join('')}</div>` : '';
+        if (condition) infoSections.push({ label: '유닛 정보', text: condition });
+        const unitInfoHtml = infoSections.map(info => `<div class="uc-unit-info"><span class="uc-unit-info-label">${info.label}</span><p>${escapeHtml(info.text)}</p></div>`).join('');
         const recipeHtml = formatRecipe(item, 1, false);
-        return `<article id="card-${prefix}${item.id}" class="unit-card${isRestricted ? ' is-excluded' : ''}" data-grade="${item.grade}" data-action="toggleUnit" data-uid="${item.id}" tabindex="0" role="group" aria-label="${item.name} ${isRestricted ? '선택 제한' : '목표 선택'}">` +
+        return `<article id="card-${prefix}${item.id}" class="unit-card${isRestricted ? ' is-excluded' : ''}" data-grade="${item.grade}" data-action="toggleUnit" data-uid="${item.id}" tabindex="0" role="group" aria-label="${item.name} ${isRestricted ? '선택 제한' : '선택'}">` +
             `<div class="uc-card-inner"><div class="uc-head">` +
             `<div class="uc-meta-row"><span class="gtag grade-${item.grade}">${item.grade}</span>${isRestricted ? '<span class="badge-excluded"><svg class="badge-excluded-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>선택제한</span>' : ''}${starBtnHtml(item.id)}</div>` +
             `<h3 class="uc-name-row">${item.name}</h3>` +
-            noticeHtml +
             `${essenceText ? `<div>${essenceText}</div>` : ''}</div>` +
-            `<div class="uc-recipe-area"><span class="recipe-label">COMBINATION</span>${recipeHtml}</div>` +
+            `<div class="uc-recipe-area"><span class="recipe-label">COMBINATION</span>${recipeHtml}${unitInfoHtml}</div>` +
             `${buildCardControl(item, prefix, isRestricted, isOT)}</div></article>`;
     }
 
@@ -2070,15 +2062,13 @@
             (_unitCardElsByUid.get(uid) || []).forEach(card => {
                 if (!item) return;
                 if (!isOneTime(item)) {
-                    const nv = isActive ? String(activeUnits.get(uid)) : '-';
+                    const nv = isActive ? String(activeUnits.get(uid)) : '0';
                     card.querySelectorAll('.ss-val').forEach(v => { if (v.innerText !== nv) v.innerText = nv; });
-                    card.querySelectorAll('.smart-stepper button').forEach(b => { b.disabled = !isActive; });
+                    card.querySelectorAll('.smart-stepper button').forEach(b => { b.disabled = Number(b.dataset.delta) < 0 && !isActive; });
                 }
                 card.style.display = 'flex';
                 card.classList.toggle('active', isActive);
-                card.setAttribute('aria-label', `${item.name} · ${isActive ? '선택됨' : '목표 선택'}`);
-                const status = card.querySelector('.selection-status-label');
-                if (status) status.textContent = isRestrictedUnit(uid) ? '선택 제한' : isActive ? '선택됨' : '목표 선택';
+                card.setAttribute('aria-label', `${item.name} · ${isRestrictedUnit(uid) ? '선택 제한' : isActive ? '선택 해제' : '선택'}`);
             });
             (_favoriteBtnElsByUid.get(uid) || []).forEach(btn => {
                 btn.classList.toggle('is-fav', isFav);
@@ -2122,19 +2112,19 @@
         if (!groups.includes(_presetTab)) _presetTab = groups[0];
 
         tabBar.style.display = groups.length > 1 ? 'flex' : 'none';
-        tabBar.innerHTML = groups.map(g => `<button type="button" class="preset-inline-tab-btn${g === _presetTab ? ' active' : ''}" data-action="switchPresetTab" data-tab="${g}">${g}</button>`).join('');
+        tabBar.innerHTML = groups.map(g => `<button type="button" class="preset-inline-tab-btn ${g === '정수 프리셋' ? 'preset-kind-essence' : 'preset-kind-general'}${g === _presetTab ? ' active' : ''}" data-action="switchPresetTab" data-tab="${g}" aria-pressed="${g === _presetTab}">${g}</button>`).join('');
 
         btnList.innerHTML = SYSTEM_CONFIG.presets.map((p, i) => {
             const isHidden = p.hidden === true || p.hidden === '비활성';
             if (isHidden || (p.group || '일반 프리셋') !== _presetTab) return '';
-            const colorKey = PRESET_COLOR_MAP[p.배경색] || 'red';
+            const colorKey = PRESET_COLOR_MAP[p.배경색];
             const textKey = PRESET_COLOR_MAP[p.글씨색];
-            let styleStr = `--btn-color:var(--preset-color-${colorKey})`;
+            let styleStr = colorKey ? `--btn-color:var(--preset-color-${colorKey})` : '';
             if (textKey === 'white') styleStr += `;--btn-text-override:#ffffff`;
             else if (textKey === 'black') styleStr += `;--btn-text-override:#111111`;
             else if (textKey) styleStr += `;--btn-text-override:rgb(var(--preset-color-${textKey}))`;
             else if (isBrightColor(p.배경색)) styleStr += ';--btn-text-override:#111111';
-            return `<button type="button" class="btn-gohaeng" data-action="runPreset" data-preset-idx="${i}" style="${styleStr}">${p.icon ? `<span>${p.icon}</span>` : ''}<span>${p.label}</span></button>`;
+            return `<button type="button" class="btn-gohaeng ${isEssencePreset(p) ? 'preset-kind-essence' : 'preset-kind-general'}" data-action="runPreset" data-preset-idx="${i}" style="${styleStr}">${p.icon ? `<span>${p.icon}</span>` : ''}<span>${p.label}</span></button>`;
         }).join('');
 
         updatePresetBtns();
@@ -2143,7 +2133,7 @@
     function updatePresetBtns() {
         syncPresetUsageState();
         SYSTEM_CONFIG.presets.forEach((p, i) => {
-            const btn = document.querySelector(`[data-action="runPreset"][data-preset-idx="${i}"]`), used = p.oneTime && _presetUsed.get(i);
+            const btn = document.querySelector(`[data-action="runPreset"][data-preset-idx="${i}"]`), used = _presetUsed.get(i);
             if (btn) { btn.disabled = !!used; btn.classList.toggle('gohaeng-used', !!used); btn.removeAttribute('title'); }
         });
     }
@@ -2157,6 +2147,10 @@
 
     function setUnitQty(id, val) {
         if (!unitMap.has(id) || isRestrictedUnit(id) || isOneTime(unitMap.get(id))) return;
+        if (val <= 0) {
+            if (activeUnits.delete(id)) debouncedUpdateAllPanels();
+            return;
+        }
         if (setActiveUnitQty(id, val)) debouncedUpdateAllPanels();
     }
 
@@ -2367,7 +2361,7 @@
             const items = getUnitsFromMap(activeUnits);
             cartListArea.innerHTML = actionHtml + items.map(item => {
                 const qty = activeUnits.get(item.id) || 1;
-                const qtyHtml = !isOneTime(item) ? `<div class="cart-item-stepper"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1">-</button><span class="ci-val" id="${prefix}-val-${item.id}">${qty}</span><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1">+</button></div>` : `<span class="ci-onetime">×${qty}</span>`;
+                const qtyHtml = !isOneTime(item) ? `<div class="cart-item-stepper smart-stepper" role="group" aria-label="${item.name} 수량"><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="-1" aria-label="${item.name} 감소"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6"/></svg></button><span class="ci-val ss-val" id="${prefix}-val-${item.id}" aria-live="polite">${qty}</span><button type="button" data-action="smartChange" data-uid="${item.id}" data-delta="1" aria-label="${item.name} 추가"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m10 6 6 6-6 6"/></svg></button></div>` : `<span class="ci-onetime">×${qty}</span>`;
                 return `<div class="cart-item" id="${prefix}-${item.id}"><div class="cart-unit-info"><span class="cart-item-grade"><span class="gtag grade-${item.grade}">${item.grade}</span></span><span class="cart-item-name" ${getUnitNameStyle(item)}>${item.name}</span></div>${qtyHtml}<button type="button" class="cart-item-pause-btn" data-action="pauseCartItem" data-uid="${item.id}">보류</button><button type="button" class="cart-item-del" data-action="removeActiveUnit" data-uid="${item.id}">제거</button></div>`;
             }).join('');
             return;
@@ -2647,6 +2641,10 @@
 
     document.addEventListener('click', e => {
         if (!e.target.closest('.gh-fontsize-ctrl')) closeFontSizePopup();
+        const pointerCardUid = _smartChangePointerCardUid;
+        _smartChangePointerCardUid = null;
+        const card = e.target.closest('.unit-card[data-action="toggleUnit"]');
+        if ((pointerCardUid && card?.dataset.uid === pointerCardUid) || e.target.closest('.unit-card .uc-ctrl-area')) return;
         const actionEl = e.target.closest('[data-action]');
         if (!actionEl) {
             if (_currentHighlight) toggleHighlight(null);
@@ -2659,10 +2657,10 @@
             case 'switchMainView': switchLayout(actionEl.dataset.view); break;
             case 'runPreset':
                 const idx = parseInt(actionEl.dataset.presetIdx, 10), preset = SYSTEM_CONFIG.presets[idx];
-                if (preset && !(preset.oneTime && _presetUsed.get(idx))) {
+                if (preset && !_presetUsed.get(idx)) {
                     processCommand(preset.command, true, preset.preventStack === true);
                     if (isEssencePreset(preset) && applyEssencePresetTopLevelFilter()) debouncedUpdateAllPanels();
-                    if (preset.oneTime) _presetUsed.set(idx, true);
+                    _presetUsed.set(idx, true);
                     updatePresetBtns();
                 }
                 break;
@@ -2699,6 +2697,10 @@
             case 'restoreAllCompletedUnits': e.stopPropagation(); restoreAllCompletedUnits(); break;
             case 'clearCartItems': e.stopPropagation(); clearCartItems(); break;
             case 'toggleFavorite': toggleFavorite(uid, e); break;
+            case 'smartChange':
+                // 포인터는 누르고 있기 동작을 사용하고, 키보드 클릭은 한 번만 변경합니다.
+                if (e.detail === 0) { startSmartChange(uid, parseInt(actionEl.dataset.delta, 10), e); stopSmartChange(); }
+                break;
             case 'toggleUnit': toggleUnitSelection(uid, 1); break;
             case 'toggleHighlight': toggleHighlight(uid, e); break;
             case 'toggleGroup':
@@ -2720,8 +2722,14 @@
     });
 
     document.addEventListener('pointerdown', e => {
+        _smartChangePointerCardUid = null;
         const actionEl = e.target.closest('[data-action="smartChange"]');
-        if (actionEl) { e.stopPropagation(); startSmartChange(actionEl.dataset.uid, parseInt(actionEl.dataset.delta, 10), e); return; }
+        if (actionEl) {
+            _smartChangePointerCardUid = actionEl.closest('.unit-card')?.dataset.uid || null;
+            e.stopPropagation();
+            startSmartChange(actionEl.dataset.uid, parseInt(actionEl.dataset.delta, 10), e);
+            return;
+        }
         if (e.target.closest('[data-action="increaseFont"]')) { e.preventDefault(); startFontHold(APP_INTERNAL.fontScaleStep); return; }
         if (e.target.closest('[data-action="decreaseFont"]')) { e.preventDefault(); startFontHold(-(APP_INTERNAL.fontScaleStep)); return; }
     });
