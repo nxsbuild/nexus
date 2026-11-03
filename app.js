@@ -18,9 +18,9 @@
             }
         },
         grades: {
-            order: ["매직", "레어", "에픽", "유니크", "헬", "레전드", "히든", "고유히든", "슈퍼히든"],
+            order: ["기초", "매직", "레어", "에픽", "유니크", "헬", "레전드", "히든", "고유히든", "슈퍼히든"],
             colors: {
-                "매직": "var(--grade-magic)", "레어": "var(--grade-rare)", "에픽": "var(--grade-epic)", "유니크": "var(--grade-unique)",
+                "기초": "var(--grade-basic)", "매직": "var(--grade-magic)", "레어": "var(--grade-rare)", "에픽": "var(--grade-epic)", "유니크": "var(--grade-unique)",
                 "헬": "var(--grade-hell)", "레전드": "var(--grade-legend)", "히든": "var(--grade-hidden)", "고유히든": "var(--grade-unique-hidden)", "슈퍼히든": "var(--grade-super)",
                 "스킬사용": "var(--grade-skill-use)"
             }
@@ -130,7 +130,7 @@
     const BASIC_HIDDENBOARD_GRADES = new Set(["레어", "에픽", "유니크", "헬", "레전드"]);
     const isBasicHiddenboardGrade = (grade) => BASIC_HIDDENBOARD_GRADES.has(grade);
     const TOOL_REASON_LABEL_HTML = '<span class="tool-badge">[도구]</span>';
-    const REASON_GRADE_ORDER = ["슈퍼히든", "고유히든", "히든", "레전드", "헬", "유니크", "에픽", "레어", "매직"];
+    const REASON_GRADE_ORDER = ["슈퍼히든", "고유히든", "히든", "레전드", "헬", "유니크", "에픽", "레어", "매직", "기초"];
     const REASON_GRADE_RANK = new Map(REASON_GRADE_ORDER.map((grade, index) => [grade, index]));
     const DEFAULT_REASON_TAG_CLASS = 'tag-reason-default';
     const getReasonGradeRank = (grade) => REASON_GRADE_RANK.get(grade) ?? REASON_GRADE_ORDER.length;
@@ -237,7 +237,12 @@
     };
 
     /* 선택·완료·화면 상태 */
-    const _favorites = new Set((() => { try { return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); } catch(e) { return []; } })());
+    const _favorites = new Set((() => {
+        try {
+            const saved = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]');
+            return Array.isArray(saved) ? saved : [];
+        } catch(e) { return []; }
+    })());
     let _unitboardCollection = null;
     let _activeTabIdx = 0, _currentViewMode = 'unitboard', _currentHighlight = null, _hideCompleted = false;
     let _highlightGroupState = null;
@@ -270,7 +275,6 @@
     const isUnitboardVisibleUnit = (u) => !!u && (getGradeIndex(u.grade) >= getUnitboardMinGradeIndex() || isUnitboardVisibleException(u.id));
     const isSelectableUnitboardUnit = (u) => isUnitboardVisibleUnit(u) && !isRestrictedUnit(u.id);
     const isOneTime = (u) => u && (CLEAN_ONE_TIME_UNITS.has(u.id) || getGradeIndex(u.grade) >= getGradeIndex(SYSTEM_CONFIG.policy.oneTimeMinGrade || "슈퍼히든"));
-    const getUnitId = (rawName) => clean(rawName);
     const getCostboardAtomRawName = (uid) => ATOM_HASH[uid] || AUTO_COST_RAW_MAP[uid] || uid;
     const getCostboardSlotToneClass = (atoms) => atoms.some(atom => AUTO_COST_SLOT_SET.has(clean(atom))) ? 'is-skill-slot' : 'is-magic-slot';
     const getUnitNameStyle = (unit) => {
@@ -472,21 +476,24 @@
         return parts;
     }
 
+    const parseRecipePart = (part) => part.match(/^([^\(\[]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?$/);
+
     /* 조합식 표시 생성 */
     const formatConditionText = (raw) => String(raw || '').split(',').map(part => part.trim()).filter(Boolean).join(' · ');
-    function renderStackedRecipeRow(name, conditions, qty = null, color = '') {
+    function renderStackedRecipeRow(name, conditions, qty = null, color = '', grade = '') {
         const style = color ? ` style="color:${color};"` : '';
         const quantity = qty === null ? '' : `<span class="badge-qty">· ${qty}개</span>`;
-        const lines = `<span class="badge-cond">${escapeHtml(conditions.map(text => text.trim()).filter(Boolean).join(' · '))}</span>`;
-        return `<div class="recipe-badge recipe-badge-stacked"${style}><span class="recipe-badge-name">${escapeHtml(name)}</span><div class="recipe-badge-main"><div class="recipe-badge-conditions">${lines}</div>${quantity}</div></div>`;
+        const lines = conditions.map(text => text.trim()).filter(Boolean).map(text => `<span class="badge-cond">${escapeHtml(text)}</span>`).join('');
+        const gradeBadge = grade ? `<span class="d-reason-grade">${escapeHtml(grade)}</span>` : '';
+        return `<div class="recipe-badge recipe-badge-stacked ${getReasonTagClassByGrade(grade)}"${style}><span class="recipe-badge-identity">${gradeBadge}<span class="recipe-badge-name">${escapeHtml(name)}</span></span><div class="recipe-badge-main"><div class="recipe-badge-conditions">${lines}</div>${quantity}</div></div>`;
     }
-    function formatRecipe(item, multi = 1, showSep = false) {
+    function formatRecipe(item, multi = 1, useHiddenboardRows = false) {
         if (!item.recipe || IGNORE_PARSE_RECIPES.includes(item.recipe)) return `<div class="recipe-empty-msg">정보 없음</div>`;
         let foundSpecialIds = [];
         let partsHtml = splitRecipe(item.recipe).map(p => {
-            const m = p.match(/^([^\(\[]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?$/);
+            const m = parseRecipePart(p);
             if (m) {
-                const unitId = getUnitId(m[1].trim()), u = unitMap.get(unitId);
+                const unitId = clean(m[1].trim()), u = unitMap.get(unitId);
                 let condHtml = '';
                 if (CLEAN_SPECIAL_CONDITIONS[unitId]) {
                     condHtml = `<span class="badge-special-cond">특수조건</span>`;
@@ -496,19 +503,22 @@
                 const qtyNum = isTool ? 1 : (m[3] ? parseInt(m[3], 10) : 1) * multi;
                 const color = u ? SYSTEM_CONFIG.grades.colors[u.grade] : 'var(--text)';
                 const toolHtml = isTool ? `<span class="tool-badge">[도구]</span>` : '';
-                if ((item.id === '데하카고치' || isConditionOnlyRecipe(item)) && !showSep && m[2] && !CLEAN_SPECIAL_CONDITIONS[unitId]) {
-                    const conditions = m[2].split(',').map(text => text.trim().replace(/↓(?=\S)/g, '↓ ').replace(/([가-힣])(?=\d)/g, '$1 '));
-                    return renderStackedRecipeRow(m[1].trim(), conditions, qtyNum, color);
+                const grade = u?.grade || '';
+                const gradeClass = getReasonTagClassByGrade(grade);
+                const gradeBadge = `<span class="d-reason-grade">${escapeHtml(grade || '재료')}</span>`;
+                if ((item.id === '데하카고치' || isConditionOnlyRecipe(item)) && m[2] && !CLEAN_SPECIAL_CONDITIONS[unitId]) {
+                    const conditions = m[2].split(',').map(text => text.trim().replace(/^100R↓저그업20$/, '100R 이하 저그업 20').replace(/↓(?=\S)/g, '↓ ').replace(/([가-힣])(?=\d)/g, '$1 '));
+                    return renderStackedRecipeRow(m[1].trim(), conditions, qtyNum, color, grade);
                 }
-                if (showSep && m[2] && !CLEAN_SPECIAL_CONDITIONS[unitId]) {
-                    return `<div class="recipe-badge" style="color:${color};"><span class="recipe-badge-name">${m[1].trim()}</span>${toolHtml}<span class="badge-cond recipe-cond-offset">${escapeHtml(formatConditionText(m[2]))}</span><span class="badge-qty-wrap"><span class="badge-qty">· ${qtyNum}개</span></span></div>`;
+                if (useHiddenboardRows) {
+                    return `<div class="d-recipe-row ${gradeClass}">${gradeBadge}<span class="d-reason-main">${escapeHtml(m[1].trim())}${toolHtml}${condHtml}</span><span class="d-reason-qty">· ${qtyNum}개</span></div>`;
                 }
-                return `<div class="recipe-badge" style="color:${color};"><span class="recipe-badge-name">${m[1].trim()}</span>${toolHtml}<span class="badge-qty-wrap">${condHtml}<span class="badge-qty">· ${qtyNum}개</span></span></div>`;
+                return `<div class="recipe-badge ${gradeClass}" style="color:${color};">${grade ? gradeBadge : ''}<span class="recipe-badge-name">${escapeHtml(m[1].trim())}</span>${toolHtml}<span class="badge-qty-wrap">${condHtml}<span class="badge-qty">· ${qtyNum}개</span></span></div>`;
             }
             return `<div class="recipe-token-muted">${p}</div>`;
         }).join('');
-        let specialCondInlineHtml = (!showSep && foundSpecialIds.length > 0) ? `<div class="tsc-wrap">${foundSpecialIds.map(uid => `<div class="tsc-item">${CLEAN_SPECIAL_CONDITIONS[uid]}</div>`).join('')}</div>` : '';
-        return `<div class="${showSep ? 'recipe-flex-wrap' : 'recipe-vertical'}">${partsHtml}</div>${specialCondInlineHtml}`;
+        const specialCondInlineHtml = foundSpecialIds.length > 0 ? `<div class="tsc-wrap">${foundSpecialIds.map(uid => `<div class="tsc-item">${CLEAN_SPECIAL_CONDITIONS[uid]}</div>`).join('')}</div>` : '';
+        return `<div class="recipe-vertical">${partsHtml}</div>${specialCondInlineHtml}`;
     }
 
     function initializeCacheEngine() {
@@ -523,15 +533,15 @@
                     let key = cName;
                     const spKey = AUTO_COMPLETE_IDS.find(k => k === cName || cName.includes(k));
                     if (spKey) key = spKey;
-                    else key = ATOM_HASH[getUnitId(cName)] || getUnitId(cName);
+                    else key = ATOM_HASH[cName] || cName;
                     u.parsedCost.push({ key, qty });
                 });
             }
             u.parsedRecipe = [];
             if (u.recipe && !IGNORE_PARSE_RECIPES.includes(u.recipe) && !isConditionOnlyRecipe(u)) {
                 splitRecipe(u.recipe).forEach(p => {
-                    const m = p.match(/^([^\(\[]+)(?:\(([^)]+)\))?(?:\[(\d+)\])?$/);
-                    if (m) u.parsedRecipe.push({ id: getUnitId(m[1]), qty: m[3] ? parseInt(m[3], 10) : 1, cond: m[2] || '' });
+                    const m = parseRecipePart(p);
+                    if (m) u.parsedRecipe.push({ id: clean(m[1]), qty: m[3] ? parseInt(m[3], 10) : 1, cond: m[2] || '' });
                 });
             }
         });
@@ -541,7 +551,10 @@
     /* 저장·검색·명령 */
     function hydrateSavedUnitMap(entries, targetMap, options = {}) {
         if (!Array.isArray(entries)) return;
-        entries.forEach(([rawUid, rawQty]) => writeRuntimeStateEntry(targetMap, rawUid, rawQty, options));
+        entries.forEach(entry => {
+            if (!Array.isArray(entry) || entry.length < 2) return;
+            writeRuntimeStateEntry(targetMap, entry[0], entry[1], options);
+        });
     }
 
     function getPersistedStatePayload() {
@@ -578,9 +591,10 @@
             hydrateSavedUnitMap(state.completedTargets, completedTargets);
             _cartTab = isValidCartTab(state.cartTab) ? state.cartTab : 'active';
             if (Array.isArray(state.presetUsed)) {
-                state.presetUsed.forEach(([k, v]) => {
-                    const idx = parseInt(k, 10);
-                    if (Number.isInteger(idx) && SYSTEM_CONFIG.presets[idx]) _presetUsed.set(idx, !!v);
+                state.presetUsed.forEach(entry => {
+                    if (!Array.isArray(entry) || entry.length < 2) return;
+                    const idx = parseInt(entry[0], 10);
+                    if (Number.isInteger(idx) && SYSTEM_CONFIG.presets[idx]) _presetUsed.set(idx, !!entry[1]);
                 });
             }
             _hideCompleted = !!state.hideCompleted;
@@ -1281,7 +1295,12 @@
         if (_isHiddenboardRendered) return;
         const boardEl = getEl('boardContent');
         if (!boardEl) return;
-        const renderHiddenboardSlot = (id, n, g) => `<div class="hiddenboard-slot" id="d-slot-wrap-${id}" data-uid="${id}"><div class="d-slot-main"><div class="d-name" data-action="showRecipeTooltip" data-uid="${id}" data-is-hiddenboard="true"><div class="d-grade-row"><span class="gtag grade-${g}">${g}</span><button type="button" class="d-target-badge" data-action="toggleHighlight" data-uid="${id}" aria-label="${n} 최종 목표 재료 추적" aria-pressed="false" title="최종 목표 재료 집중 표시" hidden>최종목표</button></div><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond recipe-cond-offset">특수조건</span>`:''}</span></div><div id="d-cond-${id}" class="d-cond-inline"></div></div><div class="d-reason-wrap" id="d-reason-${id}"></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
+        const renderHiddenboardSlot = (id, n, g) => {
+            const unit = unitMap.get(id);
+            const essenceText = getUnitUnitboardEssenceText(unit);
+            const noticeHtml = getUnitCardNotesHtml(unit);
+            return `<div class="hiddenboard-slot" id="d-slot-wrap-${id}" data-uid="${id}" data-detail-view="usage"><div class="d-slot-main"><div class="d-name"><div class="d-grade-row"><div class="d-grade-left"><span class="gtag grade-${g}">${g}</span><span class="d-final-goal-tag" hidden>최종목표</span></div><button type="button" class="d-target-badge" data-action="toggleHighlight" data-uid="${id}" aria-label="${n} 목표추적" aria-pressed="false" title="직속부터 기초 재료까지 목표추적" hidden>목표추적</button></div><div class="d-name-line"><span class="d-name-inline">${n}${CLEAN_SPECIAL_CONDITIONS[id]?`<span class="badge-special-cond recipe-cond-offset">특수조건</span>`:''}</span></div>${noticeHtml}${essenceText}</div></div><div id="d-cond-${id}" class="d-cond-inline"></div><div class="d-detail-wrap"><div class="d-detail-tabs" role="group" aria-label="${n} 표시 정보"><button type="button" class="d-detail-tab is-active" data-action="switchHiddenboardDetail" data-uid="${id}" data-detail-view="usage" aria-pressed="true" aria-controls="d-reason-${id}">사용처</button><button type="button" class="d-detail-tab" data-action="switchHiddenboardDetail" data-uid="${id}" data-detail-view="recipe" aria-pressed="false" aria-controls="d-recipe-${id}">조합법</button></div><div class="d-detail-panels"><div class="d-reason-wrap" id="d-reason-${id}" aria-hidden="false"></div><div class="d-recipe-wrap" id="d-recipe-${id}" aria-hidden="true" inert></div></div></div><div class="d-goal-recipe-wrap" id="d-goal-recipe-${id}"></div><div id="craft-wrap-${id}" class="craft-wrap"></div></div>`;
+        };
         const getGrp = (id, pid, title, resetLevel=0, isCol=false, alwaysShow=false, alwaysOpen=false, resetLabel='완료복구') => `
             <div class="hiddenboard-group" id="${id}" style="${alwaysShow ? '' : 'display:none;'}" ${alwaysShow ? 'data-always-show="true"' : ''} ${alwaysOpen ? 'data-always-open="true"' : ''}>
                 <div class="hiddenboard-group-title" data-action="toggleGroup" data-grid-id="${pid}">
@@ -1309,6 +1328,64 @@
         boardEl.querySelectorAll('.hiddenboard-slot[data-uid]').forEach(el => _hiddenboardSlotElsByUid.set(el.dataset.uid, el));
         _isHiddenboardRendered = true;
         placeHiddenboardControls();
+    }
+
+    function getHiddenboardRecipeQuantity(id, calcResult) {
+        const unit = unitMap.get(id);
+        const { reqMap, baseMap } = calcResult || _lastCalcResult || calculateBoardRequirements();
+        const requested = activeUnits.has(id)
+            ? (baseMap.get(id) || activeUnits.get(id) || 0)
+            : (reqMap.get(id) || 0);
+        const multi = isOneTime(unit) ? 1 : Math.max(requested, 1);
+        const qtyLimit = getUnitQtyLimit(id);
+        const hasSpecialLimit = isOneTime(unit) || !!CLEAN_UNIT_QTY_CAPS[id];
+        const countLabel = hasSpecialLimit
+            ? (multi === qtyLimit ? `${qtyLimit}개 제한` : `${multi}개 기준 · 최대 ${qtyLimit}개 제한`)
+            : `${multi}개 기준`;
+        return { multi, countLabel };
+    }
+
+    function renderHiddenboardRecipe(slotEl, calcResult) {
+        const id = slotEl.dataset.uid;
+        const unit = unitMap.get(id);
+        if (!unit) return;
+        const isGoal = slotEl.classList.contains('is-final-goal');
+        const recipeEl = slotEl.querySelector(isGoal ? '.d-goal-recipe-wrap' : '.d-recipe-wrap');
+        if (!recipeEl) return;
+        const { multi, countLabel } = getHiddenboardRecipeQuantity(id, calcResult);
+        const renderKey = `${multi}:${countLabel}`;
+        if (recipeEl._renderKey === renderKey) return;
+        if (isGoal) {
+            // 최종목표는 기존 유닛 도감의 조합 조건 스타일을 유지합니다.
+            recipeEl.innerHTML = `<div class="uc-recipe-area"><span class="recipe-label">조합 조건<span class="d-recipe-count">${escapeHtml(countLabel)}</span></span>${formatRecipe(unit, multi)}</div>`;
+        } else {
+            // 일반 재료는 등급·이름·조건·수량을 조합 조건과 같은 간결한 행으로 표시합니다.
+            recipeEl.innerHTML = `<div class="d-detail-title" style="color:${SYSTEM_CONFIG.grades.colors[unit.grade]}"><span>${escapeHtml(unit.name)} 조합법</span><span class="d-recipe-count">(${escapeHtml(countLabel)})</span></div><div class="d-recipe-content">${formatRecipe(unit, multi, true)}</div>`;
+        }
+        recipeEl._renderKey = renderKey;
+    }
+
+    function switchHiddenboardDetail(id, view, calcResult = null) {
+        const slotEl = _hiddenboardSlotElsByUid.get(id);
+        if (!slotEl || slotEl.classList.contains('is-final-goal')) return;
+        const activeView = view === 'recipe' ? 'recipe' : 'usage';
+        slotEl.dataset.detailView = activeView;
+        slotEl.querySelectorAll('.d-detail-tab').forEach(tab => {
+            const selected = tab.dataset.detailView === activeView;
+            tab.classList.toggle('is-active', selected);
+            tab.setAttribute('aria-pressed', String(selected));
+        });
+        // 두 영역 모두 레이아웃에 참여시키고 비활성 영역만 가려 카드 높이를 유지합니다.
+        // 클릭할 수 있는 사용처 태그는 선택된 탭에서만 활성화합니다.
+        for (const [panel, selected] of [
+            [slotEl.querySelector('.d-reason-wrap'), activeView === 'usage'],
+            [slotEl.querySelector('.d-recipe-wrap'), activeView === 'recipe']
+        ]) {
+            if (!panel) continue;
+            panel.setAttribute('aria-hidden', String(!selected));
+            panel.inert = !selected;
+        }
+        renderHiddenboardRecipe(slotEl, calcResult);
     }
 
     function returnHiddenboardControlsToHeader() {
@@ -1654,9 +1731,8 @@
 
             const rCon = slotEl.querySelector(`#d-reason-${id}`);
             if (rCon) {
-                let rMap = reasonMap.get(id);
+                const rMap = reasonMap.get(id);
                 if (rMap && rMap.size > 0 && needed > 0) {
-                    // 최종 목표는 카드 상단 배지에서 추적하며, 하단에는 사용처만 표시합니다.
                     let allEntries = getCachedReasonEntries(id, rMap).filter(([, info]) => info.depth !== 0);
                     if (isTarget && !isMergedSlot) allEntries = [];
                     if (_currentHighlight) {
@@ -1667,25 +1743,27 @@
                         if (filtered.length > 0) allEntries = filtered;
                     }
                     if (allEntries.length > 0) {
-                        let sorted = allEntries.sort((a, b) =>
+                        const sorted = allEntries.sort((a, b) =>
                             (a[1].depth || 0) - (b[1].depth || 0) ||
                             (a[1].reasonGradeRank ?? REASON_GRADE_ORDER.length) - (b[1].reasonGradeRank ?? REASON_GRADE_ORDER.length) ||
                             (a[1]._reasonOrder || 0) - (b[1]._reasonOrder || 0)
                         );
-                        rCon.style.display = 'flex';
-                        rCon.classList.toggle('is-target-only', sorted.every(([, i]) => i.depth === 0));
-                        rCon.innerHTML = sorted.map(([rId, info], index) => {
+                        rCon.classList.toggle('is-target-only', sorted.every(([, info]) => info.depth === 0));
+                        const unit = unitMap.get(id);
+                        const titleColor = SYSTEM_CONFIG.grades.colors[unit?.grade] || 'var(--accent)';
+                        const usageTitle = `<div class="d-detail-title" style="color:${titleColor}"><span>${escapeHtml(unit?.name || id)} 사용처</span><span class="d-recipe-count">(클릭 시 목표추적)</span></div>`;
+                        rCon.innerHTML = usageTitle + sorted.map(([rId, info]) => {
                             const splitTagClass = isSplitReason(info) ? ' is-split-reason' : '';
-                            const firstUsage = index === 0;
-                            const usageLabel = firstUsage ? '<span class="d-reason-caption">사용처</span>' : '';
-                            return `${usageLabel}<button type="button" class="d-reason-tag ${getReasonTagClass(info)}${splitTagClass}" data-action="toggleHighlight" data-uid="${rId.replace(/^(TARGET_|MAT_|TOOL_|AUTO_)/,'')}">${renderReasonTagContent(info)}</button>`;
+                            return `<button type="button" class="d-reason-tag ${getReasonTagClass(info)}${splitTagClass}" data-action="toggleHighlight" data-uid="${rId.replace(/^(TARGET_|MAT_|TOOL_|AUTO_)/,'')}">${renderReasonTagContent(info)}</button>`;
                         }).join('');
                     } else {
-                        rCon.style.display = 'none';
                         rCon.classList.remove('is-target-only');
                         rCon.innerHTML = '';
                     }
-                } else { rCon.style.display='none'; rCon.classList.remove('is-target-only'); rCon.innerHTML=''; }
+                } else {
+                    rCon.classList.remove('is-target-only');
+                    rCon.innerHTML = '';
+                }
             }
 
             const cEl = slotEl.querySelector(`#d-cond-${id}`);
@@ -1708,7 +1786,7 @@
 
                 if (condMap.size > 0) {
                     cEl.style.display = 'flex';
-                    cEl.innerHTML = '<span class="d-reason-caption">조합 조건</span>' +
+                    cEl.innerHTML = '<span class="recipe-label">조합 조건</span>' +
                         Array.from(condMap, ([condStr, qty]) => `<div class="d-condition-row"><span class="d-cond-text">${escapeHtml(condStr)}</span><span class="d-cond-qty">${qty}개</span></div>`).join('');
                 } else {
                     cEl.style.display = 'none';
@@ -1752,6 +1830,8 @@
 
             const isFinalGoal = tGrid === grids.target;
             slotEl.classList.toggle('is-final-goal', isFinalGoal);
+            if (isFinalGoal) renderHiddenboardRecipe(slotEl, calcResult);
+            else switchHiddenboardDetail(id, slotEl.dataset.detailView, calcResult);
             const cWrap = slotEl.querySelector(`#craft-wrap-${id}`);
             if (cWrap) {
                 if (!isCompleted) {
@@ -1764,10 +1844,12 @@
             const targetBadge = slotEl.querySelector('.d-target-badge');
             if (targetBadge) {
                 const isTracking = isFinalGoal && targetHighlight === id;
+                slotEl.querySelector('.d-final-goal-tag').hidden = !isFinalGoal;
                 targetBadge.hidden = !isFinalGoal;
                 targetBadge.classList.toggle('is-tracking', isTracking);
                 targetBadge.setAttribute('aria-pressed', String(isTracking));
-                targetBadge.title = isTracking ? '목표 재료 집중 표시 해제' : '최종 목표 재료 집중 표시';
+                targetBadge.textContent = isTracking ? '추적 해제' : '목표추적';
+                targetBadge.title = isTracking ? '목표 재료 추적 해제' : '직속 재료부터 기초 재료까지 목표추적';
             }
 
             const gridId = tGrid?.id || '';
@@ -1996,19 +2078,23 @@
         return `<div class="uc-essence-summary" aria-label="${item.name} 정수정보">${parts.map(([id, name, value]) => `<span class="uc-essence-chip uc-essence-${id}"><span>${name}</span><span class="uc-essence-value">${value}</span></span>`).join('')}</div>`;
     }
 
-    function buildCard(item, prefix = '') {
-        const isRestricted = isRestrictedUnit(item.id), isOT = isOneTime(item);
-        const essenceText = getUnitUnitboardEssenceText(item);
+    function getUnitCardNotesHtml(item) {
         const notes = [];
-        if (isRestricted) {
+        if (isRestrictedUnit(item.id)) {
             const parents = Array.from(unitMap.values()).filter(parent => parent.parsedRecipe?.some(ingredient => ingredient.id === item.id));
             const parentNames = parents.length ? parents.map(parent => parent.name).join('·') : '상위 유닛';
             notes.push(`${parentNames} 조합에 자동 포함 · 직접 선택 불가`);
         }
         const condition = CLEAN_UNIT_CONDITIONS[item.id];
         if (condition) notes.push(condition);
-        const noticeHtml = notes.length ? `<div class="uc-notes">${notes.map(note => `<div class="uc-note"><span>${escapeHtml(note)}</span></div>`).join('')}</div>` : '';
-        const recipeHtml = formatRecipe(item, 1, false);
+        return notes.length ? `<div class="uc-notes">${notes.map(note => `<div class="uc-note"><span>${escapeHtml(note)}</span></div>`).join('')}</div>` : '';
+    }
+
+    function buildCard(item, prefix = '') {
+        const isRestricted = isRestrictedUnit(item.id), isOT = isOneTime(item);
+        const essenceText = getUnitUnitboardEssenceText(item);
+        const noticeHtml = getUnitCardNotesHtml(item);
+        const recipeHtml = formatRecipe(item);
         return `<article id="card-${prefix}${item.id}" class="unit-card${isRestricted ? ' is-excluded' : ''}" data-grade="${item.grade}" data-action="toggleUnit" data-uid="${item.id}" tabindex="0" role="group" aria-label="${item.name} ${isRestricted ? '선택 제한' : '목표 선택'}">` +
             `<div class="uc-card-inner"><div class="uc-head">` +
             `<div class="uc-meta-row"><span class="gtag grade-${item.grade}">${item.grade}</span>${isRestricted ? '<span class="badge-excluded"><svg class="badge-excluded-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>선택제한</span>' : ''}${starBtnHtml(item.id)}</div>` +
@@ -2595,32 +2681,6 @@
         });
     }
 
-    function showRecipeTooltip(id, event, isHiddenboard = false) {
-        event?.stopPropagation(); const u = unitMap.get(id), tt = getEl('recipeTooltip'); if (!u || !tt) return;
-        tt.classList.remove('is-guide');
-        delete tt.dataset.guide;
-        document.querySelectorAll('[data-action$="Guide"]').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
-
-        const isClickInside = isInsideRecipeTooltip(event);
-
-        let multi = 1;
-        if (isHiddenboard) {
-            const { reqMap, baseMap, autoCostReq } = _lastCalcResult || calculateBoardRequirements();
-            if (AUTO_COST_SLOT_SET.has(id)) {
-                multi = autoCostReq[id] || 0;
-            } else if (activeUnits.has(id)) {
-                multi = baseMap.get(id) || activeUnits.get(id) || 0;
-            } else {
-                multi = reqMap.get(id) || 0;
-            }
-        }
-        multi = isOneTime(u) ? 1 : Math.max(multi, 1);
-        let foundSpecialConds = new Set(); u.parsedRecipe?.forEach(pr => pr.id && CLEAN_SPECIAL_CONDITIONS[pr.id] && foundSpecialConds.add(pr.id));
-
-        tt.innerHTML = `<div class="tooltip-header" style="color:${SYSTEM_CONFIG.grades.colors[u.grade]}"><div>${u.name} 조합법 ${multi > 1 ? `<span class="tooltip-multi-count">(${multi}개 기준)</span>` : ''}</div></div><div class="tooltip-body">${formatRecipe(u, multi, true)}${foundSpecialConds.size > 0 ? `<div class="tsc-wrap">${Array.from(foundSpecialConds).map(uid => `<div class="tsc-item">${CLEAN_SPECIAL_CONDITIONS[uid]}</div>`).join('')}</div>` : ''}</div><div class="tooltip-footer"><span class="tooltip-footer-close">터치/클릭 또는 ESC로 닫기</span></div>`;
-        showTooltipOverlay(tt, event, APP_INTERNAL.tooltipOffset, APP_INTERNAL.tooltipOffset, isClickInside);
-    }
-
     function showBoardGuideTooltip(board, event) {
         event?.stopPropagation();
         const tt = getEl('recipeTooltip');
@@ -2636,8 +2696,8 @@
                 title: '히든 보드 사용법',
                 items: [
                     ['유닛 선택', '유닛 도감에서 카드를 선택하면 최종 목표와 필요 재료가 자동 계산됩니다.'],
-                    ['조합법 확인', '유닛 이름을 클릭하면 선택한 수량에 맞는 조합법이 표시됩니다.'],
-                    ['재료 집중표시', '카드 하단 사용처 태그를 클릭하면 관련 재료가 집중표시됩니다. 다시 클릭하면 해제됩니다.'],
+                    ['조합법 확인', '최종목표는 카드 안에 조합 조건이 표시됩니다. 일반 재료는 사용처 옆 조합법을 눌러 확인할 수 있습니다.'],
+                    ['사용처·목표추적', '일반 재료는 사용처 태그를 눌러 집중표시합니다. 최종목표는 제목 위 목표추적 버튼으로 기초 재료까지 강조하고 다시 누르면 해제합니다.'],
                     ['완료 처리', '1개·10개·완료 버튼으로 수량을 반영합니다. 재료 조건을 충족하면 상위 조합의 완료 상태도 자동 반영됩니다.'],
                     ['완료 숨기기', '완료된 재료 카드를 숨기며 최종 목표 카드는 유지됩니다.'],
                     ['그룹 관리·복구', '그룹 제목을 눌러 접거나 펼치고, 각 그룹의 복구 버튼으로 완료 내역을 되돌립니다.'],
@@ -2749,6 +2809,7 @@
                 break;
             case 'toggleUnit': toggleUnitSelection(uid, 1); break;
             case 'toggleHighlight': toggleHighlight(uid, e); break;
+            case 'switchHiddenboardDetail': e.stopPropagation(); switchHiddenboardDetail(uid, actionEl.dataset.detailView); break;
             case 'toggleGroup':
                 const grp = actionEl.closest('.hiddenboard-group'), gridEl = getEl(actionEl.dataset.gridId), icon = actionEl.querySelector('.grp-toggle-icon');
                 if (grp) {
@@ -2763,7 +2824,6 @@
             case 'restorePausedUnit': e.stopPropagation(); restorePausedUnit(uid); break;
             case 'resetGroup': e.stopPropagation(); resetGroupCompleted(parseInt(actionEl.dataset.level, 10)); break;
             case 'hideRecipeTooltip': e.stopPropagation(); hideRecipeTooltip(); break;
-            case 'showRecipeTooltip': e.stopPropagation(); showRecipeTooltip(uid, e, actionEl.dataset.isHiddenboard === 'true'); break;
         }
     });
 
@@ -2807,15 +2867,24 @@
             if (document.activeElement === searchInp) searchInp?.blur();
         }
     });
-    window.addEventListener('orientationchange', () => { hideRecipeTooltip(); closeFontSizePopup(); placeHiddenboardControls(); updateBoardHeader(); });
-    window.addEventListener('resize', () => { hideRecipeTooltip(); closeFontSizePopup(); placeHiddenboardControls(); updateBoardHeader(); });
+    const handleViewportChange = () => {
+        hideRecipeTooltip();
+        closeFontSizePopup();
+        placeHiddenboardControls();
+        updateBoardHeader();
+    };
+    window.addEventListener('orientationchange', handleViewportChange);
+    window.addEventListener('resize', handleViewportChange);
     window.addEventListener('focus', updateBuildWindowButton);
     /* 앱 초기화 */
     function startNexusApp(){
         try {
             document.documentElement.lang = 'ko';
             if (typeof UNIT_DATABASE === 'undefined' || !Array.isArray(UNIT_DATABASE)) { markNexusAppError("N1003", new Error("UNIT_DATABASE load failed")); return; }
-            UNIT_DATABASE.forEach(kArr => unitMap.set(clean(kArr[0]), { id: clean(kArr[0]), name: kArr[0], grade: kArr[1] || SYSTEM_CONFIG.grades.order[0], category: kArr[2] || SYSTEM_CONFIG.tabs[0].key, recipe: kArr[3], cost: kArr[4] }));
+            UNIT_DATABASE.forEach(kArr => {
+                const id = clean(kArr[0]);
+                unitMap.set(id, { id, name: kArr[0], grade: kArr[1] || SYSTEM_CONFIG.grades.order[0], category: kArr[2] || SYSTEM_CONFIG.tabs[0].key, recipe: kArr[3], cost: kArr[4] });
+            });
             pruneFavorites();
 
             initializeCacheEngine();
