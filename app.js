@@ -637,10 +637,92 @@
 
     function setupSearchEngine() {
         const inp = getEl('unitSearchInput');
-        if (!inp) return;
+        const list = getEl('unitSearchSuggestions');
+        if (!inp || !list) return;
+
+        const searchableUnits = [...unitMap.values()].filter(unit =>
+            isUnitboardVisibleUnit(unit) && !isRestrictedUnit(unit.id)
+        );
+        let activeIndex = -1;
+
+        function closeSuggestions() {
+            list.hidden = true;
+            activeIndex = -1;
+            inp.setAttribute('aria-expanded', 'false');
+            inp.removeAttribute('aria-activedescendant');
+        }
+
+        function renderSuggestions() {
+            closeSuggestions();
+            const command = inp.value.slice(inp.value.lastIndexOf('/') + 1);
+            const [unitName] = command.split('*', 1);
+            const query = normalizeSavedId(unitName);
+            if (!query) return;
+            const matches = searchableUnits.filter(unit => unit.id.includes(query));
+            matches.sort((a, b) => a.id.indexOf(query) - b.id.indexOf(query) || a.id.length - b.id.length);
+            list.replaceChildren(...matches.slice(0, 8).map((unit, index) => {
+                const option = document.createElement('div');
+                option.id = `unit-search-option-${index}`;
+                option.setAttribute('role', 'option');
+                option.setAttribute('aria-selected', 'false');
+                option.textContent = unit.name;
+                return option;
+            }));
+            if (!list.children.length) return;
+            list.hidden = false;
+            inp.setAttribute('aria-expanded', 'true');
+        }
+
+        function selectSuggestion(option) {
+            const commandStart = inp.value.lastIndexOf('/') + 1;
+            const quantityStart = inp.value.indexOf('*', commandStart);
+            const quantity = quantityStart < 0 ? '' : inp.value.slice(quantityStart);
+            inp.value = inp.value.slice(0, commandStart) + option.textContent + quantity;
+            closeSuggestions();
+        }
+
+        function runSearch() {
+            processCommand(inp.value);
+            closeSuggestions();
+            inp.blur();
+        }
+
+        getEl('btnRunUnitSearch')?.addEventListener('click', runSearch);
+        inp.addEventListener('input', renderSuggestions);
+        inp.addEventListener('blur', closeSuggestions);
+        list.addEventListener('pointerdown', e => e.preventDefault());
+        list.addEventListener('click', e => {
+            const option = e.target.closest('[role="option"]');
+            if (option) selectSuggestion(option);
+        });
         inp.addEventListener('keydown', e => {
             if (e.isComposing || e.keyCode === 229) return;
-            if (e.key === 'Enter') { e.preventDefault(); processCommand(e.target.value); inp.blur(); }
+            if (e.key === 'Escape' && !list.hidden) {
+                e.stopPropagation();
+                closeSuggestions();
+                return;
+            }
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                if (list.hidden) renderSuggestions();
+                if (list.hidden) return;
+                e.preventDefault();
+                list.children[activeIndex]?.setAttribute('aria-selected', 'false');
+                const last = list.children.length - 1;
+                activeIndex = e.key === 'ArrowDown' ? Math.min(last, activeIndex + 1)
+                    : activeIndex < 0 ? last : Math.max(0, activeIndex - 1);
+                const option = list.children[activeIndex];
+                option.setAttribute('aria-selected', 'true');
+                inp.setAttribute('aria-activedescendant', option.id);
+                return;
+            }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (!list.hidden && activeIndex >= 0) {
+                    selectSuggestion(list.children[activeIndex]);
+                    return;
+                }
+                runSearch();
+            }
         });
     }
 
@@ -1900,7 +1982,7 @@
             children.forEach(el => grid.appendChild(el));
         });
 
-        Object.values(grids).forEach(g => wrapHiddenboardGridPages(g, 9, !!targetHighlight));
+        Object.values(grids).forEach(g => wrapHiddenboardGridPages(g, 6, !!targetHighlight));
 
         Object.values(grids).forEach(g => {
             if (!g) return;
@@ -2135,7 +2217,7 @@
         if (items.length === 0) {
             return `<div class="collection-empty"><span aria-hidden="true">☆</span><h3>자주 쓰는 유닛을 모아두세요</h3><p>카드의 별을 누르면 여기에 모입니다.<br>원래 도감의 위치와 선택 상태는 그대로 유지됩니다.</p><button type="button" class="ctrl-btn" data-action="selectTab" data-tab-idx="${_activeTabIdx}">유닛도감 둘러보기</button></div>`;
         }
-        return `<p class="collection-guide">모든 분류의 즐겨찾기를 한곳에서 확인하세요. 별을 다시 누르면 해제됩니다.</p><div class="unitboard-fav-grid">${buildPagerPages(items.map(item => buildCard(item, 'fav-')), 3, 'unitboard-page unitboard-fav-page')}</div>`;
+        return `<p class="collection-guide">모든 분류의 즐겨찾기를 한곳에서 확인하세요. 별을 다시 누르면 해제됩니다.</p><div class="unitboard-fav-grid">${buildPagerPages(items.map(item => buildCard(item, 'fav-')), 2, 'unitboard-page unitboard-fav-page')}</div>`;
     }
     function initAllTabContents() {
         const tc = getEl('tabContent');
@@ -2151,7 +2233,7 @@
                 }
             }
             const bodyHtml = items.length
-                ? buildPagerPages(items.map(item => buildCard(item)), 9, 'unitboard-page unitboard-category-page')
+                ? buildPagerPages(items.map(item => buildCard(item)), 6, 'unitboard-page unitboard-category-page')
                 : '<div class="unitboard-empty-msg">표시할 유닛이 없습니다.</div>';
             return `<div id="cat-group-${cat.key}" class="cat-group" role="tabpanel" aria-labelledby="tab-btn-${SYSTEM_CONFIG.tabs.indexOf(cat)}"><div class="unitboard-category-grid">${bodyHtml}</div></div>`;
         }).join('');
@@ -2244,7 +2326,7 @@
         if (!groups.includes(_presetTab)) _presetTab = groups[0];
 
         tabBar.style.display = groups.length > 1 ? 'flex' : 'none';
-        tabBar.innerHTML = groups.map(g => `<button type="button" class="preset-inline-tab-btn ${g === '정수 프리셋' ? 'preset-kind-essence' : 'preset-kind-general'}${g === _presetTab ? ' active' : ''}" data-action="switchPresetTab" data-tab="${g}" aria-pressed="${g === _presetTab}">${g}</button>`).join('');
+        tabBar.innerHTML = groups.map(g => `<button type="button" class="preset-inline-tab-btn ${g === '정수 프리셋' ? 'preset-kind-essence' : 'preset-kind-general'}${g === _presetTab ? ' active' : ''}" data-action="switchPresetTab" data-tab="${g}" aria-pressed="${g === _presetTab}">${g.replace(/ 프리셋$/, '')}</button>`).join('');
 
         btnList.innerHTML = SYSTEM_CONFIG.presets.map((p, i) => {
             const isHidden = p.hidden === true || p.hidden === '비활성';
@@ -2681,58 +2763,9 @@
         });
     }
 
-    function showBoardGuideTooltip(board, event) {
-        event?.stopPropagation();
-        const tt = getEl('recipeTooltip');
-        const guideBtn = event?.target?.closest?.('[data-action$="Guide"]');
-        if (!tt || !guideBtn) return;
-        if (tt.classList.contains('active') && tt.classList.contains('is-guide') && tt.dataset.guide === board) {
-            hideRecipeTooltip();
-            return;
-        }
-
-        const guides = {
-            hiddenboard: {
-                title: '히든 보드 사용법',
-                items: [
-                    ['유닛 선택', '유닛 도감에서 카드를 선택하면 최종 목표와 필요 재료가 자동 계산됩니다.'],
-                    ['조합법 확인', '최종목표는 카드 안에 조합 조건이 표시됩니다. 일반 재료는 사용처 옆 조합법을 눌러 확인할 수 있습니다.'],
-                    ['사용처·목표추적', '일반 재료는 사용처 태그를 눌러 집중표시합니다. 최종목표는 제목 위 목표추적 버튼으로 기초 재료까지 강조하고 다시 누르면 해제합니다.'],
-                    ['완료 처리', '1개·10개·완료 버튼으로 수량을 반영합니다. 재료 조건을 충족하면 상위 조합의 완료 상태도 자동 반영됩니다.'],
-                    ['완료 숨기기', '완료된 재료 카드를 숨기며 최종 목표 카드는 유지됩니다.'],
-                    ['그룹 관리·복구', '그룹 제목을 눌러 접거나 펼치고, 각 그룹의 복구 버튼으로 완료 내역을 되돌립니다.'],
-                    ['전체 초기화', '선택·보류·완료 내역을 초기화합니다. 실행 전 2초 동안 다시 누르면 취소할 수 있습니다.']
-                ]
-            },
-            unitboard: {
-                title: '유닛 도감 사용법',
-                items: [
-                    ['유닛 선택', '유닛 카드를 클릭하면 조합 목표에 추가되고, 다시 클릭하면 선택이 해제됩니다.'],
-                    ['목표 수량 조절', '선택한 유닛의 +·− 버튼으로 목표 수량을 변경합니다. 일부 유닛은 수량 조절이 제한됩니다.'],
-                    ['즐겨찾기', '카드의 별표를 누르면 즐겨찾기에 등록되며, 별표를 다시 누르면 해제됩니다.'],
-                    ['검색·커맨드', '검색창에 유닛 이름이나 커맨드를 입력하고 Enter를 누르면 해당 유닛이 추가됩니다.'],
-                    ['프리셋', '검색창 아래 프리셋 버튼으로 등록된 커맨드를 실행합니다.'],
-                    ['전체 선택', '현재 분류(또는 즐겨찾기)의 유닛을 한 번에 선택하거나 해제합니다.'],
-                    ['선택 초기화', '현재 선택한 목표만 해제합니다. 보류·완료 내역과 재료 진행도는 유지됩니다.']
-                ]
-            }
-        };
-        const guide = guides[board];
-        if (!guide) return;
-        tt.classList.add('is-guide');
-        tt.dataset.guide = board;
-        tt.innerHTML = `<div class="tooltip-header">${guide.title}</div><div class="tooltip-body guide-tooltip-list">${guide.items.map(([title, description], index) => `<div class="guide-tooltip-item"><span class="guide-tooltip-number">${String(index + 1).padStart(2, '0')}</span><div class="guide-tooltip-content"><span class="guide-tooltip-title">${title}</span><span class="guide-tooltip-description">${description}</span></div></div>`).join('')}</div><div class="tooltip-footer"><span class="tooltip-footer-close">빈 공간 터치/클릭 또는 ESC로 닫기</span></div>`;
-        document.querySelectorAll('[data-action$="Guide"]').forEach(btn => btn.setAttribute('aria-expanded', String(btn === guideBtn)));
-        showTooltipOverlay(tt, event, APP_INTERNAL.tooltipOffset, APP_INTERNAL.tooltipOffset, false, guideBtn);
-    }
-
     function hideRecipeTooltip() {
         const tt = getEl('recipeTooltip');
-        if (tt) {
-            tt.classList.remove('active', 'is-guide');
-            delete tt.dataset.guide;
-        }
-        document.querySelectorAll('[data-action$="Guide"]').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
+        tt?.classList.remove('active');
     }
 
     /* 이벤트 바인딩 */
@@ -2777,8 +2810,6 @@
             case 'increaseFont': if (e.detail === 0) setFontScale(_fontScale + APP_INTERNAL.fontScaleStep); break;
             case 'decreaseFont': if (e.detail === 0) setFontScale(_fontScale - APP_INTERNAL.fontScaleStep); break;
             case 'switchPresetTab': _presetTab = actionEl.dataset.tab; renderPresetButtons(); break;
-            case 'showHiddenboardGuide': showBoardGuideTooltip('hiddenboard', e); break;
-            case 'showUnitboardGuide': showBoardGuideTooltip('unitboard', e); break;
             case 'toggleHideCompleted':
                 _hideCompleted = !_hideCompleted;
                 updateHideCompletedBtn();
@@ -2867,7 +2898,18 @@
             if (document.activeElement === searchInp) searchInp?.blur();
         }
     });
+    function updatePivotColumns() {
+        const { width, height } = window.screen;
+        const pixelRatio = window.devicePixelRatio || 1;
+        const isPortraitDesktop = width < height && window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+        const pixelWidth = width * pixelRatio;
+        const pixelHeight = height * pixelRatio;
+        const columns = isPortraitDesktop && pixelWidth >= 2159 && pixelHeight >= 3839 ? '4'
+            : isPortraitDesktop && pixelWidth >= 1439 && pixelHeight >= 2559 ? '3' : '';
+        document.documentElement.dataset.pivotColumns = columns;
+    }
     const handleViewportChange = () => {
+        updatePivotColumns();
         hideRecipeTooltip();
         closeFontSizePopup();
         placeHiddenboardControls();
@@ -2876,10 +2918,12 @@
     window.addEventListener('orientationchange', handleViewportChange);
     window.addEventListener('resize', handleViewportChange);
     window.addEventListener('focus', updateBuildWindowButton);
+    window.addEventListener('focus', updatePivotColumns);
     /* 앱 초기화 */
     function startNexusApp(){
         try {
             document.documentElement.lang = 'ko';
+            updatePivotColumns();
             if (typeof UNIT_DATABASE === 'undefined' || !Array.isArray(UNIT_DATABASE)) { markNexusAppError("N1003", new Error("UNIT_DATABASE load failed")); return; }
             UNIT_DATABASE.forEach(kArr => {
                 const id = clean(kArr[0]);

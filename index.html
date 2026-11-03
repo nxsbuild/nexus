@@ -3,7 +3,7 @@
 <head>
     <script>
         // 배포 버전은 이 값만 변경합니다. 앱 표기와 정적 리소스 캐시에 함께 적용됩니다.
-        window.APP_VERSION = "nexus-v037";
+        window.APP_VERSION = "nexus-v038";
         window.NEXUS_BUILD_VERSION = window.APP_VERSION;
         if (new URLSearchParams(window.location.search).get('nexusStandalone') === 'build') {
             document.documentElement.classList.add('nexus-standalone-build');
@@ -429,10 +429,13 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     <main id="mainLayout" class="main-layout">
         <section class="panel-left hud-panel" id="panelLeft" aria-label="유닛도감">
             <div class="archive-toolbar">
-                <div class="left-search-wrap" role="search"><div class="search-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input type="text" id="unitSearchInput" class="search-input" placeholder="유닛 이름 또는 커맨드 입력" autocomplete="off" spellcheck="false" aria-label="유닛 검색"><kbd>Enter ↵</kbd><button type="button" id="btnUnitboardGuide" class="guide-btn" data-action="showUnitboardGuide" title="유닛 도감 사용법 보기" aria-haspopup="true" aria-controls="recipeTooltip" aria-expanded="false">사용법</button></div></div>
-                <div id="presetInlineWrap" class="preset-inline-wrap" role="group" aria-label="프리셋 목록"><div id="presetInlineTabBar" class="preset-inline-tab-bar"></div><div id="presetInlineBtnList" class="preset-inline-btn-list"></div></div>
+                <div class="left-search-wrap" role="search"><div class="search-row"><div class="search-field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input type="text" id="unitSearchInput" class="search-input" placeholder="유닛명 · 땅굴*8" autocomplete="off" spellcheck="false" aria-label="유닛 검색" role="combobox" aria-autocomplete="list" aria-controls="unitSearchSuggestions" aria-expanded="false"></div><button type="button" id="btnRunUnitSearch" class="search-run-btn" title="검색 실행 (Enter)">실행</button></div><div id="unitSearchSuggestions" class="search-suggestions" role="listbox" aria-label="유닛 이름 후보" hidden></div></div>
+                <div class="left-tabs-wrap"><div id="unitboardTabs" class="unitboard-tabs" role="tablist" aria-label="유닛 분류"></div></div>
+                <details class="preset-disclosure">
+                    <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></svg><span>프리셋</span></summary>
+                    <div id="presetInlineWrap" class="preset-inline-wrap" role="group" aria-label="프리셋 목록"><div class="preset-panel-title" aria-hidden="true">프리셋 선택</div><div id="presetInlineTabBar" class="preset-inline-tab-bar"></div><div id="presetInlineBtnList" class="preset-inline-btn-list"></div></div>
+                </details>
             </div>
-            <div class="left-tabs-wrap"><div id="unitboardTabs" class="unitboard-tabs" role="tablist" aria-label="유닛 분류"></div></div>
             <div class="archive-list-heading"><div><h2 id="archiveCategoryTitle">테바</h2><span class="archive-count" id="archiveCount"></span></div><div class="left-tab-actions"><button type="button" id="btnSelectAllTab" class="btn-tab-action" data-action="toggleSelectAllTab"><span>전체 선택</span><span class="action-icon" aria-hidden="true">+</span></button><button type="button" id="btnResetSelection" class="btn-tab-action btn-reset-action" data-action="resetUnitboard" title="현재 선택만 해제합니다. 보류·완료 내역과 재료 진행도는 유지합니다."><span>선택 초기화</span><span class="action-icon" aria-hidden="true">↺</span></button></div></div>
             <div class="panel-unitboard-inner"><div id="tabContent" class="panel-body panel-unitboard-body"></div></div>
         </section>
@@ -453,7 +456,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
             </section>
         </aside>
         <section class="panel-right hud-panel" id="colRightPanel" aria-label="조합 보드">
-            <div class="panel-header hiddenboard-ph" id="boardMobileHeader"><div class="hiddenboard-ph-btns" id="hiddenboardGlobalActions"><button type="button" id="btnHiddenboardGuide" class="ctrl-btn guide-btn" data-action="showHiddenboardGuide" title="히든 보드 사용법 보기" aria-haspopup="true" aria-controls="recipeTooltip" aria-expanded="false">사용법</button><button type="button" id="btnHideCompleted" class="ctrl-btn" data-action="toggleHideCompleted" aria-pressed="false" title="완료된 재료를 표시하고 있습니다"><span id="btnHideCompletedLabel">완료 숨기기</span><span class="action-state" id="btnHideCompletedState" aria-hidden="true">OFF</span></button><button type="button" id="btnRestoreAll" class="ctrl-btn reset-btn" data-action="restoreAllCompleted" title="전체 선택·보류·완료 내역 초기화 · 2초 내 다시 누르면 취소"><span id="btnRestoreAllLabel" aria-live="polite">전체 초기화</span><span class="reset-action-state" id="btnRestoreAllState" aria-hidden="true">↺</span></button></div></div>
+            <div class="panel-header hiddenboard-ph" id="boardMobileHeader"><div class="hiddenboard-ph-btns" id="hiddenboardGlobalActions"><button type="button" id="btnHideCompleted" class="ctrl-btn" data-action="toggleHideCompleted" aria-pressed="false" title="완료된 재료를 표시하고 있습니다"><span id="btnHideCompletedLabel">완료 숨기기</span><span class="action-state" id="btnHideCompletedState" aria-hidden="true">OFF</span></button><button type="button" id="btnRestoreAll" class="ctrl-btn reset-btn" data-action="restoreAllCompleted" title="전체 선택·보류·완료 내역 초기화 · 2초 내 다시 누르면 취소"><span id="btnRestoreAllLabel" aria-live="polite">전체 초기화</span><span class="reset-action-state" id="btnRestoreAllState" aria-hidden="true">↺</span></button></div></div>
             <div id="boardContent" class="panel-body"></div>
         </section>
     </main>
