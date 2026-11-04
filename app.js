@@ -3530,11 +3530,7 @@
         function jumpToGenealogyEdge(towardBase) {
             if (towardBase) {
                 graph.querySelectorAll('.genealogy-tree-node').forEach(node => { node.open = true; });
-                const lastLeaf = [...graph.querySelectorAll('.genealogy-tree-leaf')].at(-1);
-                if (lastLeaf && window.matchMedia('(max-width: 1024px)').matches) lastLeaf.scrollIntoView({ block: 'end' });
-                else scroll.scrollTop = scroll.scrollHeight;
-            } else if (window.matchMedia('(max-width: 1024px)').matches) {
-                graph.scrollIntoView({ block: 'start' });
+                scroll.scrollTop = scroll.scrollHeight;
             } else {
                 scroll.scrollTop = 0;
             }

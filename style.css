@@ -79,7 +79,7 @@ svg { display:block; width:20px; height:20px; flex-shrink:0; }
     .gh-title-mainline { font-size:15.5px; }
     .gh-title-main { font-size:14px; }
     .gh-title { max-width:100%; }
-    .gh-nav-btn { gap:9px; padding:12px 10px; }
+    .gh-nav-btn { gap:9px; padding:12px 10px; max-width:clamp(78px, calc(15vw - 37px), 95px); }
 }
 @media (max-width:1024px) and (min-width:768px),
        (min-width:1025px) and (max-aspect-ratio:11/10),
@@ -107,7 +107,7 @@ svg { display:block; width:20px; height:20px; flex-shrink:0; }
     .gh-title-label { font-size:8.75px; }
     .gh-title-main { font-size:12.5px; }
     .gh-title-stack { flex-direction:column; align-items:flex-start; gap:2px; height:28px; }
-    .gh-center { position:static; transform:none; display:grid; width:100%; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; margin:0 auto; }
+    .gh-center { position:static; transform:none; display:grid; width:100%; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0; margin:0 auto; }
     .gh-nav-btn { justify-content:center; width:100%; min-width:0; padding:10px 2px; min-height:40px; gap:4px; border-radius:7px; }
     .gh-nav-btn svg { width:15px; height:15px; }
     .gh-nav-label { min-width:0; font-size:clamp(10px,3vw,12px); white-space:nowrap; }
@@ -177,7 +177,6 @@ html.nexus-standalone-build,html.nexus-standalone-build body { height:auto; min-
     .main-layout.view-hiddenboard .build-overview { order:1; }
     .main-layout.view-hiddenboard .panel-right { order:2; }
     .inspector-heading { padding:14px 16px 8px; }
-    .inspector-heading .section-kicker { display:none; }
 }
 
 @media (max-width:767px) {
@@ -465,7 +464,6 @@ html.nexus-standalone-build,html.nexus-standalone-build body { height:auto; min-
 
 /* 우측 조합 목록 / 정수 합계 */
 .inspector-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:16px 18px 10px; flex-shrink:0; }
-.section-kicker { display:block; margin-bottom:5px; font:8px var(--font-mono); letter-spacing:1px; color:#c2b9aa; }
 .inspector-heading h2 { font-size:calc(15px * var(--fs-scale)); letter-spacing:-.5px;  color:#ead7ad; }
 .inspector-window-controls { position:relative; flex-shrink:0; }
 .inspector-standalone-btn { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:30px; height:30px; padding:0; border:1px solid #8d7755; border-radius:7px; background:#211e19; color:#e6c89e; }
@@ -786,6 +784,13 @@ body .nexus-labelled-control.is-label-visible > .nexus-action-label{max-width:va
 .global-header[data-nexus-layout="bar"] .gh-nav-btn{flex:0 1 auto;min-width:0;}
 .global-header[data-nexus-layout="bar"] .gh-nav-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .global-header[data-nexus-layout="bar"] .gh-right{flex:0 0 auto;margin-left:0;}
+@media (min-width:768px) and (max-width:1024px),
+       (hover:none) and (pointer:coarse) and (min-width:768px) and (max-width:1366px) {
+    .global-header[data-nexus-layout="bar"] { gap:10px; padding-inline:12px; }
+    .global-header[data-nexus-layout="bar"] .gh-left { flex:0 0 158px; }
+    .global-header[data-nexus-layout="bar"] .gh-nav-btn { flex:0 0 clamp(116px,14vw,144px); max-width:none; padding:10px 12px; gap:8px; justify-content:center; }
+    .global-header[data-nexus-layout="bar"] .gh-nav-label { flex:0 0 auto; overflow:visible; text-overflow:clip; }
+}
 @media(max-width:767px){.global-header .gh-left{padding-right:120px;}.global-header:has(.gh-right .is-label-visible) .gh-left{padding-right:240px;}}
 @media(prefers-reduced-motion:reduce){body .nexus-labelled-control,body .nexus-labelled-control > .nexus-action-label{transition:none!important;}}
     
@@ -984,7 +989,7 @@ body .nexus-labelled-control[hidden]{display:none!important}
 .genealogy-cost-grid .costboard-split-item .costboard-val { font-size:12px; }
 .genealogy-cost-grid .costboard-split-item .costboard-name { font-size:calc(7px * var(--fs-scale)); }
 .genealogy-cost-spacer { border-color:#26282c; opacity:.35; }
-/* 조합 족보는 마우스 사용 PC의 넓은 화면에서만 제공한다. */
+/* 재료보드·유닛족보는 PC 전용이며 태블릿·모바일에서는 생성하지 않는다. */
 @media (max-width:1024px), (max-aspect-ratio:11/10), (hover:none) and (pointer:coarse) {
     #btnViewInvenboard, #btnViewGenealogy, #genealogyPanel { display:none; }
 }

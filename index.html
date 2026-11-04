@@ -409,14 +409,12 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
                 </div>
             </div>
         </div>
-        <div class="nav-eyebrow">WORKSPACE</div>
         <nav class="gh-center" aria-label="주요 화면">
             <button type="button" id="btnViewUnitboard" class="gh-nav-btn active" data-action="switchMainView" data-view="unitboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="gh-nav-label">유닛도감</span></button>
             <button type="button" id="btnViewHiddenboard" class="gh-nav-btn" data-action="switchMainView" data-view="hiddenboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v5m-7 5V8h14v5M5 17v4m14-4v4"/><rect x="2" y="13" width="6" height="4" rx="1"/><rect x="16" y="13" width="6" height="4" rx="1"/><rect x="9" y="3" width="6" height="5" rx="1"/></svg><span class="gh-nav-label">히든보드</span></button>
             <template id="invenboardNavTemplate"><button type="button" id="btnViewInvenboard" class="gh-nav-btn" data-action="switchMainView" data-view="invenboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg><span class="gh-nav-label">재료보드</span></button></template>
             <template id="genealogyNavTemplate"><button type="button" id="btnViewGenealogy" class="gh-nav-btn" data-action="switchMainView" data-view="genealogy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v4M5 16v-5h14v5"/><rect x="8" y="2" width="8" height="5" rx="1"/><rect x="2" y="16" width="6" height="5" rx="1"/><rect x="16" y="16" width="6" height="5" rx="1"/></svg><span class="gh-nav-label">유닛족보</span></button></template>
         </nav>
-        <div class="sidebar-note"><div class="sidebar-orbit" aria-hidden="true"><span></span><span></span><b>✳</b></div><p>조합의 시작부터<br><strong>완성까지, 한곳에서.</strong></p><span class="sidebar-note-caption">YOUR GAME. CONNECTED.</span></div>
         <div class="gh-right">
             <button type="button" id="btnBuildStandalone" class="gh-tool-btn" data-action="openBuildIndependentWindow" aria-label="조합·재료 독립 창" title="조합·재료 독립 창"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="19" height="15" rx="2"/><rect x="11.5" y="11" width="7.5" height="5.5" rx="1"/></svg></button>
             <a class="gh-tool-btn" data-nexus-view="dps" href="https://nxsbuild.github.io/build/" aria-label="개복디 빌더" title="개복디 빌더"><span aria-hidden="true">B</span></a>
@@ -445,7 +443,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         </section>
         <aside class="build-inspector hud-panel" aria-label="나의 조합">
             <section class="build-overview" aria-label="정수와 필요 재료">
-            <div class="inspector-heading"><div><span class="section-kicker">MY BUILD WORKSPACE</span><h2>나의 조합</h2></div><div class="inspector-window-controls"></div></div>
+            <div class="inspector-heading"><div><h2>나의 조합</h2></div><div class="inspector-window-controls"></div></div>
             <div id="cartEssenceSummary" class="cart-essence-summary" aria-live="polite"></div>
             <section class="panel-costboard" id="panelCostboard" aria-label="필요 재료">
                 <details class="build-materials" open>
