@@ -789,7 +789,7 @@ body .nexus-labelled-control.is-label-visible > .nexus-action-label{max-width:va
 .global-header[data-nexus-layout="bar"] .gh-nav-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .global-header[data-nexus-layout="bar"] .gh-right{flex:0 0 auto;margin-left:0;}
 .hdr.app-header .hdr-meta{flex-wrap:wrap;max-width:100%;}
-@media(max-width:767px){.global-header .gh-left{padding-right:158px;}.global-header:has(.gh-right .is-label-visible) .gh-left{padding-right:278px;}}
+@media(max-width:767px){.global-header .gh-left{padding-right:120px;}.global-header:has(.gh-right .is-label-visible) .gh-left{padding-right:240px;}}
 @media(prefers-reduced-motion:reduce){body .nexus-labelled-control,body .nexus-labelled-control > .nexus-action-label{transition:none!important;}}
     
 body .nexus-labelled-control[hidden]{display:none!important}
