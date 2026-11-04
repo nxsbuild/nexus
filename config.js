@@ -6,6 +6,9 @@
  * - 프리셋 command는 유닛명을 / 로 구분하고, 수량은 유닛명*수량 형식으로 입력합니다.
  */
 window.NEXUS_USER_CONFIG = {
+    // 유닛 족보에서 최종 목표 후보로 노출하지 않을 유닛
+    genealogy: { excludedTargetIds: ["유물"] },
+
 
     /* 도구 유닛 예외
      * 형식: "상위유닛": ["도구유닛1", "도구유닛2"]
@@ -23,8 +26,8 @@ window.NEXUS_USER_CONFIG = {
      * presetMaxQty: 프리셋 추가 시 최대 수량
      */
     unitBehaviors: {
-        "갓오타": { skillUseRender: true, batch: 1 },
-        "메시브": { skillUseRender: true, batch: 1 },
+        "갓오타": { skillUseRender: true, batch: 1, autoCompleteRecipeRequirement: true },
+        "메시브": { skillUseRender: true, batch: 1, autoCompleteRecipeRequirement: true },
         "자동포탑": { skillUseRender: true, batch: 5 },
         "유물": { maxQty: 1, presetNoStack: true },
         "황제의증인": { maxQty: 2 },
