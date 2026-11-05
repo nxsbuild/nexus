@@ -64,15 +64,13 @@ modalStyle.textContent = String.raw`/* 모달: 넥서스 패치노트 — 어두
 #nexusPatchDialog .note-header:hover { background:rgba(var(--release-rgb),.055); }
 #nexusPatchDialog details[open]>.note-header { border-bottom:1px solid #3d4959; border-radius:9px 9px 0 0; background:rgba(var(--release-rgb),.075); }
 #nexusPatchDialog .note-heading { display:flex; flex-direction:column; gap:5px; min-width:0; }
-#nexusPatchDialog .note-topline { display:flex; align-items:center; flex-wrap:wrap; gap:4px 10px; min-width:0; }
-#nexusPatchDialog .note-identity { display:flex; align-items:center; flex:1 1 180px; flex-wrap:wrap; gap:4px 6px; min-width:0; }
-#nexusPatchDialog .note-release-badge { display:inline-flex; align-items:center; min-height:23px; padding:2px 8px; border:1px solid rgba(var(--release-rgb),.5); border-radius:6px; background:rgba(var(--release-rgb),.12); color:var(--release-tone); font:700 11px/1.35 var(--font-mono); letter-spacing:.01em; }
+#nexusPatchDialog .note-topline { display:flex; align-items:flex-start; justify-content:space-between; gap:8px 12px; min-width:0; }
+#nexusPatchDialog .note-release-badge, #nexusPatchDialog .note-kind-label { flex-shrink:0; color:var(--release-tone); font:600 9px/1.5 var(--font-mono); letter-spacing:.06em; white-space:nowrap; }
 #nexusPatchDialog .change-tag { padding:2px 7px; border:1px solid #4c596b; border-radius:5px; background:#293243; color:#d0dbee; font-size:10px; line-height:1.45; }
 #nexusPatchDialog .note-meta { flex:0 0 auto; margin-left:auto; text-align:right; white-space:nowrap; }
 #nexusPatchDialog time { display:block; color:#a5b1c2; font:10px/1.5 var(--font-mono); font-variant-numeric:tabular-nums; letter-spacing:0; white-space:nowrap; }
-#nexusPatchDialog .note-description { display:flex; align-items:baseline; gap:9px; min-width:0; }
-#nexusPatchDialog .note-kind-label { flex-shrink:0; color:#9ba9c0; font:9px/1.5 var(--font-mono); letter-spacing:.06em; white-space:nowrap; }
-#nexusPatchDialog .release-label { min-width:0; overflow:hidden; color:#e4eaf4; font-size:11.5px; font-weight:500; line-height:1.45; text-overflow:ellipsis; white-space:nowrap; }
+#nexusPatchDialog .note-description { display:flex; align-items:center; flex-wrap:wrap; gap:5px 9px; min-width:0; }
+#nexusPatchDialog .release-label { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; flex:1 1 0; min-width:0; overflow:hidden; overflow-wrap:anywhere; color:#e4eaf4; font-size:12px; font-weight:600; line-height:1.45; }
 /* Rich GitHub issue body; all content is mounted only for the selected note. */
 #nexusPatchDialog .note-body { padding:15px 16px; border-radius:0 0 10px 10px; background:var(--patch-body); color:#dce0e8; font-size:12.5px; line-height:1.65; }
 #nexusPatchDialog .note-body>*+* { margin-top:8px; }
@@ -123,9 +121,7 @@ modalStyle.textContent = String.raw`/* 모달: 넥서스 패치노트 — 어두
  #nexusPatchDialog .patch-scroll { padding:12px 11px 16px; }
  #nexusPatchDialog .result-strip { margin-bottom:9px; }
  #nexusPatchDialog .note-header { padding:9px 9px 9px 10px; }
- #nexusPatchDialog .note-identity { flex-basis:150px; }
- #nexusPatchDialog .note-release-badge { min-height:22px; font-size:10px; }
- #nexusPatchDialog .note-kind-label { font-size:8px; }
+ #nexusPatchDialog .note-release-badge, #nexusPatchDialog .note-kind-label { font-size:8px; }
  #nexusPatchDialog .release-label { font-size:11px; }
  #nexusPatchDialog .note-body { padding:12px 11px; }
  #nexusPatchDialog .patch-reader-nav { grid-template-columns:75px minmax(0,1fr) 75px; gap:8px; padding:8px 11px; }
@@ -133,7 +129,7 @@ modalStyle.textContent = String.raw`/* 모달: 넥서스 패치노트 — 어두
 }
 @media(max-width:360px) {
  #nexusPatchDialog .tag-filters button { padding-inline:8px; }
- #nexusPatchDialog .note-description { gap:6px; }
+ #nexusPatchDialog .note-description { gap:4px 6px; }
 }
 @media(prefers-reduced-motion:reduce) {
  #patch-notes details,#nexusPatchDialog button,#nexusPatchDialog .patch-search { transition:none; }
@@ -182,9 +178,9 @@ function element(tag, value, className) {
 
 function toNote(issue) {
   if (issue.pull_request || issue.user?.id !== ownerId) return null;
-  if (/^\[(빌더|공통)(?:\s|\])/u.test(issue.title.trim())) return null;
-  if (!issue.body?.trim()) return null;
-  const rawTitle = issue.title.trim();
+  const rawTitle = String(issue.title || '').trim();
+  if (!rawTitle || /^\[(빌더|공통)(?:\s|\])/u.test(rawTitle)) return null;
+  const body = String(issue.body || '').trim();
   const hashtags = [...rawTitle.matchAll(/#([^\s#,，|\[\]]+)/gu)].map((tag) => tag[1]);
   const withoutTags = rawTitle.replace(/#[^\s#,，|\[\]]+/gu, '').trim();
   const bracket = /^\[([^\]]+)\]\s*(.*)$/u.exec(withoutTags);
@@ -197,11 +193,16 @@ function toNote(issue) {
   let remaining = classification;
   if (version) remaining = remaining.slice(version.length).replace(/^\s*업데이트(?:\s+|$)/u, '').trim();
   else if (isHidden) remaining = remaining.replace(/^신규히든(?:\s+업데이트)?(?:\s+|$)/u, '').trim();
-  const title = [remaining, bracket ? bracket[2] : ''].filter(Boolean).join(' ').replace(/[\[\]]/g, '').replace(/\s+/gu, ' ').trim();
+  const heading = body.split(/\r?\n/gu)
+    .map((line) => /^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$/u.exec(line)?.[1] || '')
+    .find((line) => line && !/^(?:변경\s*사항|업데이트\s*내용|상세\s*내용|공지\s*사항)$/u.test(line.trim()));
+  const titleFromIssue = [remaining, bracket ? bracket[2] : ''].filter(Boolean)
+    .join(' ').replace(/[\[\]]/g, '').replace(/\s+/gu, ' ').trim();
+  const title = (heading || titleFromIssue || rawTitle).trim();
   const category = version || (kind === 'hidden' ? '신규히든' : '패치노트');
   const name = ['넥서스', category, title].filter(Boolean).join(' ');
   return {
-    product: 'nexus', kind, category, version, title, tags, name, body: issue.body.trim(), html: issue.body_html,
+    product: 'nexus', kind, category, version, title, tags, name, body, html: issue.body_html,
     number: issue.number, publishedAt: issue.created_at,
   };
 }
@@ -230,7 +231,7 @@ function renderBody(note) {
   const template = document.createElement('template');
   template.innerHTML = note.html;
   const attachments = note.body.match(/https:\/\/github\.com\/user-attachments\/assets\/[a-f0-9-]{36}/gi) ?? [];
-  const duplicateTitles = new Set([note.name, note.name + ' 안내']);
+  const duplicateTitles = new Set([note.title, note.name, note.name + ' 안내']);
   const duplicateHeading = [...template.content.children].find((node) => /^H[1-6]$/.test(node.tagName));
 
   function append(parent, node) {
@@ -289,16 +290,6 @@ function selectedNotes() {
   return notes.filter((note) => note.product === filter &&
     (newsFilters[filter] === 'all' || (newsFilters[filter] === '신규히든' ? note.kind === 'hidden' : note.kind !== 'hidden')) &&
     [note.name, ...note.tags, note.body].join(' ').toLocaleLowerCase().includes(searchText));
-}
-
-function notePreview(note) {
-  if (note.title) return note.title;
-  const content = note.body
-    .replace(/!\[[^\]]*\]\([^)]*\)/gu, ' ')
-    .replace(/\[([^\]]+)\]\([^)]*\)/gu, '$1')
-    .replace(/[`*_>#|~]/gu, ' ')
-    .split(/\r?\n/gu).map((line) => line.trim()).find(Boolean) || '';
-  return content.replace(/\s+/gu, ' ').slice(0, 120);
 }
 
 function updateFeedStatus() {
@@ -360,19 +351,17 @@ function renderNotes() {
     card.open = note.number === activeNoteNumber;
     const heading = element('div', '', 'note-heading');
     const topLine = element('div', '', 'note-topline');
-    const identity = element('div', '', 'note-identity');
-    identity.append(element('span', note.category, 'note-release-badge'));
-    for (const tag of note.tags) identity.append(element('span', '#' + tag, 'change-tag'));
+    topLine.append(element('span', note.title, 'release-label'));
     const meta = element('div', '', 'note-meta');
     const date = element('time', formatPublishedAt(note.publishedAt));
     date.dateTime = note.publishedAt;
     meta.append(date);
-    topLine.append(identity, meta);
+    topLine.append(meta);
     heading.append(topLine);
     const description = element('div', '', 'note-description');
+    if (note.version) description.append(element('span', note.version, 'note-release-badge'));
     description.append(element('span', note.kind === 'hidden' ? 'NEW HIDDEN' : note.kind === 'version' ? 'VERSION UPDATE' : 'PATCH NOTE', 'note-kind-label'));
-    const preview = notePreview(note);
-    if (preview) description.append(element('span', preview, 'release-label'));
+    for (const tag of note.tags) description.append(element('span', '#' + tag, 'change-tag'));
     heading.append(description);
     const header = element('summary', '', 'note-header');
     header.append(heading);
@@ -381,7 +370,7 @@ function renderNotes() {
       toggleReader(note.number);
     });
     card.append(header);
-    if (card.open) card.append(renderBody(note));
+    if (card.open && note.body) card.append(renderBody(note));
     return card;
   }));
   updateFeedStatus();
