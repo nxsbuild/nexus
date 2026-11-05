@@ -3,7 +3,7 @@
 <head>
     <script>
         // 배포 버전은 이 값만 변경합니다. 앱 표기와 정적 리소스 캐시에 함께 적용됩니다.
-        window.APP_VERSION = "nexus-v039";
+        window.APP_VERSION = "nexus-v039e";
         window.NEXUS_BUILD_VERSION = window.APP_VERSION;
         if (new URLSearchParams(window.location.search).get('nexusStandalone') === 'build') {
             document.documentElement.classList.add('nexus-standalone-build');
@@ -200,11 +200,11 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <!-- OG/Twitter 이미지는 JS를 실행하지 않는 미리보기 봇용이므로 배포 버전과 정적 URL을 함께 갱신합니다. -->
-    <meta property="og:image" content="https://nxsbuild.github.io/nexus/logo.png?v=nexus-v039">
-    <meta property="og:image:secure_url" content="https://nxsbuild.github.io/nexus/logo.png?v=nexus-v039">
+    <meta property="og:image" content="https://nxsbuild.github.io/nexus/logo.png?v=nexus-v039e">
+    <meta property="og:image:secure_url" content="https://nxsbuild.github.io/nexus/logo.png?v=nexus-v039e">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:alt" content="개복디 넥서스">
-    <meta name="twitter:image" content="https://nxsbuild.github.io/nexus/logo.png?v=nexus-v039">
+    <meta name="twitter:image" content="https://nxsbuild.github.io/nexus/logo.png?v=nexus-v039e">
     <meta name="twitter:image:alt" content="개복디 넥서스">
     <meta name="description" content="유닛도감, 히든보드, 필요재료, 정수계산을 한곳에서 사용할 수 있는 개복디 넥서스 조합/계산 HUB">
     <meta property="og:type" content="website">
@@ -248,6 +248,7 @@
       ['.header-nexus-link','히든조합 계산기 이동',window.innerWidth<600?30:35],
       ['#dpsCompareOpen','전체 DPS 비교표',35],
       ['#independentWindowToggle','독립 창 선택',35],
+      ['#btnPatchNotes','넥서스 패치노트',window.innerWidth<768?32:34],
       ['#btnBuildStandalone','조합·재료 독립 창',window.innerWidth<768?32:34],
       
 
@@ -416,6 +417,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
             <template id="genealogyNavTemplate"><button type="button" id="btnViewGenealogy" class="gh-nav-btn" data-action="switchMainView" data-view="genealogy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v4M5 16v-5h14v5"/><rect x="8" y="2" width="8" height="5" rx="1"/><rect x="2" y="16" width="6" height="5" rx="1"/><rect x="16" y="16" width="6" height="5" rx="1"/></svg><span class="gh-nav-label">유닛족보</span></button></template>
         </nav>
         <div class="gh-right">
+            <button type="button" id="btnPatchNotes" class="gh-tool-btn" aria-label="넥서스 패치노트" aria-haspopup="dialog" aria-controls="nexusPatchDialog" aria-expanded="false" title="넥서스 패치노트"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg></button>
             <button type="button" id="btnBuildStandalone" class="gh-tool-btn" data-action="openBuildIndependentWindow" aria-label="조합·재료 독립 창" title="조합·재료 독립 창"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="19" height="15" rx="2"/><rect x="11.5" y="11" width="7.5" height="5.5" rx="1"/></svg></button>
             <a class="gh-tool-btn" data-nexus-view="dps" href="https://nxsbuild.github.io/build/" aria-label="개복디 빌더" title="개복디 빌더"><span aria-hidden="true">B</span></a>
             <div class="gh-fontsize-ctrl">
@@ -498,11 +500,29 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
             </div>
         </section></template>
     </main>
+    <dialog id="nexusPatchDialog" aria-labelledby="nexusPatchTitle">
+      <header class="patch-heading">
+        <div class="patch-title"><span class="patch-emblem" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg></span><div><span class="patch-kicker">NEXUS · RELEASE ARCHIVE</span><h2 id="nexusPatchTitle">패치노트</h2><p class="patch-subtitle">업데이트와 신규히든 소식을 한눈에</p></div></div>
+        <button type="button" id="patch-close" aria-label="패치노트 닫기" autofocus><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      </header>
+      <div class="patch-controls">
+        <div class="patch-toolbar"><label class="patch-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="patch-note-search" aria-label="패치노트 검색" type="search" placeholder="제목, 버전 또는 내용 검색" maxlength="200"></label><button type="button" id="patch-refresh" class="patch-refresh">새로고침</button></div>
+        <div class="patch-filter-row"><div class="tag-filters" data-news-product="nexus" role="group" aria-label="넥서스 소식 필터"><button type="button" data-news="all" aria-pressed="true">전체</button><button type="button" data-news="updates" aria-pressed="false">업데이트</button><button type="button" data-news="신규히든" aria-pressed="false">신규히든</button></div></div>
+      </div>
+      <div class="patch-scroll" tabindex="0" aria-label="패치노트 목록">
+        <div class="result-strip"><p id="patch-result-summary" class="result-summary" role="status"></p></div><p id="patch-feed-status" class="empty" role="status">패치노트를 불러오는 중입니다.</p><div id="patch-notes"></div>
+      </div>
+      <nav id="patch-reader-nav" class="patch-reader-nav" aria-label="패치노트 이동" hidden>
+        <button type="button" id="patch-prev"><span aria-hidden="true">‹</span> 이전</button>
+        <div class="patch-reader-current"><span id="patch-reader-position"></span></div>
+        <button type="button" id="patch-next">다음 <span aria-hidden="true">›</span></button>
+      </nav>
+    </dialog>
     <div id="boardActionStatus" class="action-feedback" role="status" aria-live="polite" aria-atomic="true"></div>
     <div id="recipeTooltip" class="recipe-tooltip" role="tooltip" aria-live="polite"></div>
 <script>
         (function(){
-            var files = ['data.js','config.js','app.js'];
+            var files = ['data.js','config.js','app.js','modal.js'];
             function loadNext(index){
                 if(index >= files.length) return;
                 var src = files[index];
