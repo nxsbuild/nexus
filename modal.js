@@ -1,10 +1,9 @@
 (() => {
 'use strict';
 
-// Patch-note modal styles and behavior are owned by this single file.
 const modalStyle = document.createElement('style');
 modalStyle.id = 'nexus-patch-modal-style';
-modalStyle.textContent = String.raw`/* 모달: 넥서스 패치노트 — 어두운 배경, 금색 포인트, 압축된 카드 목록. */
+modalStyle.textContent = String.raw`/* 패치노트 모달 */
 #nexusPatchDialog {
  --accent:#dfbe83; --g:#dfbe83; --patch-canvas:#0d1015; --patch-card:#171b23; --patch-body:#11151d;
  position:fixed; inset:0; margin:auto; width:min(820px,calc(100vw - 48px)); height:min(750px,calc(100dvh - 64px));
@@ -19,7 +18,7 @@ modalStyle.textContent = String.raw`/* 모달: 넥서스 패치노트 — 어두
 #nexusPatchDialog button { transition:background .15s,color .15s,border-color .15s; }
 #nexusPatchDialog :is(button,input,summary):focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
-/* Brand header and compact controls. */
+/* 헤더 */
 #nexusPatchDialog .patch-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-shrink:0; padding:17px 22px 15px; border-bottom:1px solid #343039; background:linear-gradient(125deg,#242027 0%,#191b22 50%,#11151c 100%); }
 #nexusPatchDialog .patch-title { display:flex; align-items:center; gap:12px; min-width:0; }
 #nexusPatchDialog .patch-emblem { display:grid; place-items:center; width:42px; height:42px; flex-shrink:0; border:1px solid #8e744c; border-radius:12px; background:linear-gradient(145deg,#4a3b28,#22252f 82%); color:#f1d399; box-shadow:inset 0 1px 0 #ffffff20,0 4px 12px #0005; }
@@ -45,7 +44,7 @@ modalStyle.textContent = String.raw`/* 모달: 넥서스 패치노트 — 어두
 #nexusPatchDialog .tag-filters [aria-pressed="true"] { border-color:#b99b69; background:#443829; color:#f6dca8; font-weight:700; box-shadow:inset 0 1px 0 #ffffff10; }
 #nexusPatchDialog .tag-filters [data-news="신규히든"][aria-pressed="true"] { border-color:#689d91; background:#1b3936; color:#a4e9d4; }
 
-/* Readable compact list; complete records remain in the full history. */
+/* 목록 */
 #nexusPatchDialog .patch-scroll { flex:1; min-height:0; overflow:auto; padding:14px 22px 18px; background:radial-gradient(ellipse at 50% -15%,#19202b 0,transparent 62%),var(--patch-canvas); scrollbar-width:thin; scrollbar-color:#505969 transparent; }
 #nexusPatchDialog .result-strip { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px 12px; margin-bottom:11px; }
 #nexusPatchDialog .result-summary { display:flex; align-items:center; gap:8px; color:#aeb8c8; font-size:11px; }
@@ -71,7 +70,7 @@ modalStyle.textContent = String.raw`/* 모달: 넥서스 패치노트 — 어두
 #nexusPatchDialog time { display:block; color:#a5b1c2; font:10px/1.5 var(--font-mono); font-variant-numeric:tabular-nums; letter-spacing:0; white-space:nowrap; }
 #nexusPatchDialog .note-description { display:flex; align-items:center; flex-wrap:wrap; gap:5px 9px; min-width:0; }
 #nexusPatchDialog .release-label { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; flex:1 1 0; min-width:0; overflow:hidden; overflow-wrap:anywhere; color:#e4eaf4; font-size:12px; font-weight:600; line-height:1.45; }
-/* Rich GitHub issue body; all content is mounted only for the selected note. */
+/* 상세 본문 */
 #nexusPatchDialog .note-body { padding:15px 16px; border-radius:0 0 10px 10px; background:var(--patch-body); color:#dce0e8; font-size:12.5px; line-height:1.65; }
 #nexusPatchDialog .note-body>*+* { margin-top:8px; }
 #nexusPatchDialog .note-body h4 { margin-top:15px; margin-bottom:7px; padding-left:10px; border-left:2px solid #a39377; color:#ede9e2; font-size:14px; }
@@ -93,7 +92,7 @@ modalStyle.textContent = String.raw`/* 모달: 넥서스 패치노트 — 어두
 #nexusPatchDialog .note-image { display:block; max-width:100%; max-height:440px; width:auto; height:auto; border:1px solid var(--line); border-radius:8px; }
 #nexusPatchDialog .image-error { display:block; padding:12px; border:1px dashed var(--line); }
 
-/* Sticky reader controls keep navigation title-free and compact. */
+/* 상세 컨트롤 */
 #nexusPatchDialog .patch-reader-nav { display:grid; grid-template-columns:100px minmax(0,1fr) 100px; align-items:center; gap:10px; flex-shrink:0; padding:10px 22px; border-top:1px solid #3c3b3a; background:linear-gradient(110deg,#1d2029,#12161e); box-shadow:0 -6px 20px #0005; }
 #nexusPatchDialog .patch-reader-nav button { display:flex; align-items:center; justify-content:center; gap:7px; min-height:33px; border:1px solid #535f72; border-radius:7px; background:#283243; color:#dce6f2; font-size:12px; }
 #nexusPatchDialog .patch-reader-nav button:not(:disabled):hover { border-color:#c2a36f; background:#3c3740; color:#f8e3bc; }
@@ -102,7 +101,7 @@ modalStyle.textContent = String.raw`/* 모달: 넥서스 패치노트 — 어두
 #nexusPatchDialog .patch-reader-current { min-width:0; text-align:center; }
 #patch-reader-position { display:block; color:#e3c99e; font:600 11px var(--font-mono); }
 
-/* All responsive changes are kept with the patch-notes feature. */
+/* 반응형 */
 @media(max-width:767px) { .global-header .gh-left { padding-right:158px; } }
 @media(max-width:540px) {
  #nexusPatchDialog { width:calc(100vw - 20px); height:calc(100dvh - 24px); border-radius:13px; }
@@ -247,7 +246,7 @@ function renderBody(note) {
     if (tag === 'img') {
       const src = httpsUrl(node.getAttribute('src'));
       if (!src) return;
-      // Use the stable attachment URL instead of GitHub's expiring signed URL.
+
       const attachment = attachments.find((url) => src.pathname.includes(url.split('/').pop()));
       const imageUrl = attachment ?? src.href;
       const alt = node.getAttribute('alt');
@@ -340,7 +339,7 @@ function renderNotes() {
     group.hidden = group.dataset.newsProduct !== filter;
   });
   const selected = selectedNotes();
-  // A reader shows just one note; closing it restores the full, unpaginated list.
+
   const active = selected.find((note) => note.number === activeNoteNumber);
   if (!active) activeNoteNumber = null;
   const displayNotes = active ? [active] : selected;

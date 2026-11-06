@@ -1,16 +1,11 @@
-/* Black & Luminous Gold / 공통 색상과 크기 */
+/* 공통 색상과 크기 */
 :root {
-    --preset-color-red:231,139,123; --preset-color-orange:225,167,104; --preset-color-yellow:222,195,113;
-    --preset-color-lime:178,192,123; --preset-color-green:127,195,159; --preset-color-sky:141,191,212;
-    --preset-color-blue:143,171,222; --preset-color-navy:151,165,211; --preset-color-purple:186,158,218;
-    --preset-color-pink:215,151,184; --preset-color-cyan:130,198,201; --preset-color-white:238,235,223;
-    --preset-color-black:199,184,145; --preset-color-gray:174,173,167; --preset-color-gold:226,192,115;
     --grade-basic:#fff; --grade-magic:#93c5fd; --grade-rare:#fcd34d; --grade-epic:#fb923c; --grade-unique:#f87171;
     --grade-hell:#f472b6; --grade-legend:#c084fc; --grade-hidden:#34d399; --grade-unique-hidden:#74FBC1; --grade-super:#fcd34d; --grade-skill-use:#fff;
-    --bg:#000000; --surface:#111216; --surface-selected:#141417; --surface-control:#101115; --ink:#f0f1f5; --text:#f0f1f5;
+    --bg:#000000; --surface:#111216; --surface-control:#101115; --ink:#f0f1f5; --text:#f0f1f5;
     --state-surface:#17212c; --state-border:#6d839b; --state-ink:#dbe8f5;
     --text-sub:#c1c6d1; --text-muted:#aeb5c4; --line:#303139; --accent:#efd3a4;
-    --g:#efd3a4; --sidebar:#0d0e12; --sidebar-w:208px; --fs-scale:1; --z-tooltip:21000;
+    --g:#efd3a4; --fs-scale:1; --z-tooltip:21000;
     --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
     --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
@@ -72,7 +67,6 @@ svg { display:block; width:20px; height:20px; flex-shrink:0; }
 .gh-icon-btn:hover { border-color:var(--accent); }
 .gh-fontsize-val { font:10px var(--font-mono); min-width:37px; text-align:center; }
 @media (max-width:1100px) and (min-width:768px) {
-    :root { --sidebar-w:156px; }
     .global-header { padding:1px 12px; }
     .gh-logo-text { gap:8px; }
     .gh-brand-mark,.gh-brand-mark :is(svg,img) { width:30px; height:30px; flex-basis:30px; }
@@ -123,7 +117,6 @@ svg { display:block; width:20px; height:20px; flex-shrink:0; }
     .gh-title-label { font-size:8.75px; }
     .gh-title-main { font-size:12.5px; }
 }
-
 
 /* 작업 공간 구조 / 화면별 표시 */
 .main-layout { margin:48px 0 0; width:100%; height:calc(100dvh - 48px); padding:8px 30px 8px; display:grid; grid-template-columns:minmax(0,1fr) 344px; grid-template-rows:minmax(0,1fr); grid-template-areas:"content inspector"; column-gap:28px; row-gap:20px; min-width:0; overflow:hidden; }
@@ -192,47 +185,41 @@ html.nexus-standalone-build,html.nexus-standalone-build body { height:auto; min-
 
 /* 도감 검색 · 프리셋 */
 .archive-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"search preset" "categories categories"; align-items:center; gap:8px; position:relative; flex-shrink:0; min-width:0; padding:4px 8px; background:transparent; }
-.left-search-wrap { grid-area:search; }
-.left-tabs-wrap { grid-area:categories; }
+.left-search-wrap { grid-area:search; position:relative; min-width:0; }
+/* 종족 분류는 검색·프리셋 영역 밖에 독립 중앙 정렬 */
+.left-tabs-wrap { grid-area:categories; display:flex; justify-content:center; flex-shrink:0; min-width:0; margin-top:6px; border-bottom:1px solid #303139; }
+/* 프리셋 미니 패널 */
 .preset-disclosure { grid-area:preset; justify-self:end; }
-.preset-disclosure > summary { display:flex; align-items:center; gap:5px; min-height:36px; padding:0 7px; list-style:none; border:1px solid #595044; border-radius:8px; color:#e7d2b0; font-size:11px; cursor:pointer; white-space:nowrap; }
+.preset-disclosure > summary { display:flex; align-items:center; gap:10px; min-height:36px; padding:0 11px; list-style:none; border:1px solid #78613d; border-radius:8px; background:#181610; color:#ead6b5; font-size:11px; cursor:pointer; white-space:nowrap; transition:background .15s,border-color .15s,color .15s; }
 .preset-disclosure > summary::-webkit-details-marker { display:none; }
-.preset-disclosure > summary svg { width:13px; height:13px; flex:none; }
-.preset-disclosure > summary::after { content:""; width:5px; height:5px; border:solid currentColor; border-width:0 1px 1px 0; transform:translateY(-1px) rotate(45deg); }
-.preset-disclosure > summary:hover,.preset-disclosure > summary:focus-visible { color:var(--g); border-color:var(--g); }
+
+.preset-disclosure > summary::after { content:""; width:6px; height:6px; flex:none; margin-left:1px; border:solid currentColor; border-width:0 1.5px 1.5px 0; transform:translateY(-2px) rotate(45deg); }
+.preset-disclosure > summary:hover,.preset-disclosure > summary:focus-visible { background:#282116; border-color:var(--g); color:#fff0d1; }
+.preset-disclosure[open] > summary { background:#2a2218; border-color:#cbaa75; color:#ffedc8; }
 .preset-disclosure[open] > summary::after { transform:translateY(2px) rotate(225deg); }
-.preset-disclosure[open] > summary { border-color:var(--g); }
+.preset-inline-wrap { display:flex; flex-direction:column; align-items:stretch; gap:11px; }
+.preset-inline-wrap[hidden] { display:none; }
 .preset-disclosure[open] .preset-inline-wrap {
     position:absolute; z-index:4; inset:calc(100% + 6px) 8px auto auto;
-    width:min(380px,calc(100% - 16px)); display:flex; flex-direction:column;
-    align-items:stretch; gap:10px; padding:12px; overflow:visible;
-    background:#17181e; border:1px solid #595044; border-top-color:#b69460;
-    border-radius:12px; box-shadow:0 12px 28px #0009;
+    width:min(358px,calc(100% - 16px)); max-height:min(440px,65vh); overflow-y:auto;
+    padding:13px; background:#111216; border:1px solid #705b3a; border-radius:11px;
+    box-shadow:0 16px 38px #000b,0 1px 0 #f0ce8520 inset;
 }
-.preset-disclosure[open] .preset-inline-wrap[hidden] { display:none; }
-.preset-panel-title { color:#e7d2b0; font-size:13px; font-weight:700; }
-.preset-disclosure .preset-inline-tab-bar { gap:12px; padding:0; border:0; border-bottom:1px solid var(--line); }
-.preset-disclosure .preset-inline-tab-btn { flex:1 1 0; min-width:0; padding:5px 8px; font-size:11px; text-align:center; }
-.preset-disclosure .preset-inline-tab-btn.active { color:#e7d2b0; background:transparent; border-bottom-color:var(--g); }
-.preset-disclosure .preset-inline-btn-list:not(:empty) { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; padding:0; overflow:visible; }
-.preset-disclosure .preset-inline-btn-list .btn-gohaeng {
-    min-width:0; min-height:42px; gap:8px; padding:6px 8px;
-    border-radius:8px; border-color:rgba(var(--btn-color),.3);
-    background:linear-gradient(110deg,rgba(var(--btn-color),.15),rgba(var(--btn-color),.035));
-    font-size:11px; font-weight:600; text-align:left; white-space:normal; overflow-wrap:anywhere;
-}
-.preset-disclosure .btn-gohaeng.preset-kind-general { --preset-group-color:199,159,104; --preset-group-ink:#ead4b4; }
-.preset-disclosure .btn-gohaeng.preset-kind-essence { --preset-group-color:112,185,173; --preset-group-ink:#c3e5de; }
-.preset-disclosure .btn-gohaeng::before {
-    content:""; width:9px; height:9px; flex:none; margin:0 3px;
-    border:1px solid currentColor; border-radius:2px;
-}
-.preset-disclosure .btn-gohaeng.preset-kind-essence::before { transform:rotate(45deg); }
-.preset-disclosure .btn-gohaeng::after { content:"→" / ""; margin-left:auto; flex:none; opacity:.55; }
-.preset-disclosure .preset-inline-btn-list .btn-gohaeng:hover:not(:disabled) { border-color:rgba(var(--btn-color),.65); background:rgba(var(--btn-color),.2); }
+.preset-panel-title { color:#efd3a4; font-size:13px; font-weight:650; letter-spacing:-.01em; }
+.preset-inline-tab-bar { display:flex; gap:16px; border-bottom:1px solid #38332c; }
+.preset-inline-tab-btn { flex:1 1 0; min-width:0; min-height:35px; padding:5px 7px 9px; border:0; border-bottom:2px solid transparent; background:transparent; color:#aeb2bd; font-size:11px; font-weight:500; text-align:center; white-space:nowrap; cursor:pointer; }
+.preset-inline-tab-btn:hover { color:#f1dec0; }
+.preset-inline-tab-btn.active { color:#f3d5a1; border-bottom-color:var(--g); font-weight:650; }
+.preset-inline-btn-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+.preset-inline-btn-list:empty { display:none; }
+.preset-inline-btn-list .btn-gohaeng { display:flex; align-items:center; justify-content:center; min-width:0; min-height:42px; padding:9px 8px; border:1px solid #544a3b; border-radius:8px; background:#1b1b1d; color:#e5d9c8; font-size:calc(11px * var(--fs-scale)); font-weight:550; line-height:1.35; text-align:center; overflow-wrap:anywhere; transition:background .15s,border-color .15s,color .15s; }
+.preset-inline-btn-list .btn-gohaeng:hover:not(:disabled) { border-color:#d1aa70; background:#2b251e; color:#fff1d4; }
+.preset-inline-btn-list .btn-gohaeng:active:not(:disabled) { background:#393022; }
+.preset-inline-btn-list .btn-gohaeng.preset-is-combined { grid-column:1 / -1; border-color:#9a794d; background:#282116; color:#f1d8ae; }
+.preset-inline-btn-list .btn-gohaeng.preset-is-combined:hover:not(:disabled) { border-color:var(--g); background:#3b2e1d; }
+.preset-inline-btn-list .btn-gohaeng:disabled { opacity:1; border-color:#323137; background:#141417; color:#777981; cursor:default; }
+.preset-inline-btn-list .btn-gohaeng:focus-visible,.preset-inline-tab-btn:focus-visible { outline:2px solid var(--g); outline-offset:2px; }
 
-
-.left-search-wrap { position:relative; min-width:0; }
 .search-field { display:flex; align-items:center; flex:1; min-width:0; gap:7px; padding:0 8px; border:1px solid #595044; border-radius:8px; }
 .search-field:focus-within { border-color:var(--g); }
 .search-suggestions { position:absolute; z-index:5; inset:calc(100% + 4px) 0 auto; padding:4px; background:#17181e; border:1px solid #595044; border-radius:8px; box-shadow:0 8px 20px #0008; }
@@ -247,37 +234,14 @@ html.nexus-standalone-build,html.nexus-standalone-build body { height:auto; min-
 .search-run-btn { flex-shrink:0; min-height:32px; padding:2px 7px; border:1px solid #786343; border-radius:5px; background:transparent; color:#e7d2b0; font-size:11px; cursor:pointer; }
 .search-run-btn:hover,.search-run-btn:focus-visible { color:var(--g); border-color:var(--g); }
 .search-input-error { color:#bfc5d1; }
-.preset-inline-wrap { display:flex; align-items:center; gap:9px; min-height:36px; min-width:0; padding:5px 10px; background:#121318; border-top:1px solid #303139; overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
-.preset-inline-wrap[hidden] { display:none; }
-.preset-inline-wrap::-webkit-scrollbar { display:none; }
-.preset-kind-general { --preset-group-color:154,166,184; --preset-group-ink:#c2c8d2; }
-.preset-kind-essence { --preset-group-color:111,160,158; --preset-group-ink:#b6ccc8; }
-.preset-inline-tab-bar { display:flex; gap:5px; flex-shrink:0; padding-right:9px; border-right:1px solid var(--line); }
-.preset-inline-tab-btn { flex-shrink:0; padding:5px 7px; border:0; border-bottom:2px solid transparent; border-radius:4px 4px 0 0; background:transparent; color:#959ca9; font-size:10px; white-space:nowrap; cursor:pointer; }
-.preset-inline-tab-btn:hover { color:var(--preset-group-ink); }
-.preset-inline-tab-btn.active { color:var(--preset-group-ink); background:rgba(var(--preset-group-color),.08); border-bottom-color:rgba(var(--preset-group-color),.65); }
-.preset-inline-btn-list { display:flex; flex-shrink:0; gap:5px; flex-wrap:nowrap; }
-.preset-inline-btn-list:empty { display:none; }
-.preset-inline-btn-list .btn-gohaeng { flex-shrink:0; white-space:nowrap; }
 @media (min-width:768px) {
     .archive-toolbar { grid-template-columns:minmax(0,20%) minmax(0,1fr) auto; grid-template-areas:"search categories preset"; }
     .archive-toolbar .left-tabs-wrap { margin-top:0; border-bottom:0; }
     .search-row { min-height:36px; gap:8px; }
     .search-row svg { flex-shrink:0; }
-    .preset-inline-tab-bar { gap:8px; }
-    .preset-inline-tab-btn { padding:2px 3px 4px; border-radius:0; line-height:1.2; }
-    .preset-inline-tab-btn.active { color:#e7d2b0; border-bottom-color:var(--g); background:transparent; }
-    .preset-inline-btn-list { flex:0 1 auto; min-width:0; gap:4px; overflow-x:auto; padding:3px; scrollbar-width:thin; }
-    .preset-inline-btn-list .btn-gohaeng { min-height:23px; padding:2px 8px; border-radius:999px; background:transparent; line-height:1.2; }
-    .preset-inline-btn-list .btn-gohaeng:hover:not(:disabled) { border-color:var(--preset-group-ink); background:transparent; }
     .archive-toolbar button:focus-visible { outline:1px solid var(--g); outline-offset:1px; }
 }
 
-.btn-gohaeng { --btn-color:var(--preset-group-color,154,166,184); display:flex; align-items:center; gap:3px; padding:5px 9px; min-height:26px; border:1px solid rgba(var(--btn-color),.2); border-radius:5px; background:rgba(var(--btn-color),.045); color:var(--btn-text-override,var(--preset-group-ink,#c2c8d2)); font-size:10px; transition:background .15s,border-color .15s; }
-.btn-gohaeng:hover:not(:disabled) { background:rgba(var(--btn-color),.1); border-color:rgba(var(--btn-color),.4); }
-.btn-gohaeng.gohaeng-used { opacity:.35; }
-/* 종족 분류는 검색·프리셋 영역 밖에 독립 중앙 정렬 */
-.left-tabs-wrap { display:flex; justify-content:center; flex-shrink:0; min-width:0; margin-top:6px; border-bottom:1px solid #303139; }
 .unitboard-tabs { display:flex; align-items:center; justify-content:safe center; gap:14px; width:100%; min-height:36px; padding:0 4px; overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
 .unitboard-tabs::-webkit-scrollbar { display:none; }
 .tab-btn { flex-shrink:0; border:0; border-bottom:2px solid transparent; background:transparent; padding:6px 1px; color:#bfc5d1; font-size:calc(12px * var(--fs-scale)); white-space:nowrap; position:relative; }
@@ -294,7 +258,7 @@ html.nexus-standalone-build,html.nexus-standalone-build body { height:auto; min-
 .left-tab-actions { display:flex; align-items:center; gap:8px; }
 .btn-tab-action { display:inline-flex; align-items:center; gap:7px; line-height:1.4; white-space:nowrap; border:0; background:transparent; color:#e7d2b0; padding:3px 1px; font-size:10px; }
 .btn-tab-action:hover { color:var(--g); }
-/* PC 작업 탭·액션 공통 가독성: 태블릿·모바일 규칙은 변경하지 않는다. */
+/* PC 작업 탭·액션 */
 @media (min-width:1025px) and (min-aspect-ratio:11/10) and (hover:hover) and (pointer:fine) {
     .unitboard-tabs .tab-btn { font-size:calc(14px * var(--fs-scale)); }
     .archive-list-heading h2 { font-size:calc(16px * var(--fs-scale)); }
@@ -311,17 +275,16 @@ html.nexus-standalone-build,html.nexus-standalone-build body { height:auto; min-
 @media (max-width:767px) {
     .archive-toolbar { background:transparent; border:0; padding:4px 8px; }
     .search-row svg { flex-shrink:0; }
-    .preset-inline-wrap { background:transparent; border-top:0; }
-    .preset-inline-tab-btn.active { color:#e7d2b0; border-bottom-color:var(--g); background:transparent; }
-    .preset-inline-btn-list .btn-gohaeng { border-radius:999px; background:transparent; }
-    .preset-inline-btn-list .btn-gohaeng:hover:not(:disabled) { border-color:var(--preset-group-ink); background:transparent; }
-    .preset-inline-wrap { gap:7px; min-height:36px; padding:5px 8px; }
-    .preset-inline-tab-btn { font-size:10px; padding:4px 4px; }
+    .preset-inline-tab-btn,.preset-inline-btn-list .btn-gohaeng { min-height:44px; }
     .unitboard-tabs { gap:12px; min-height:44px; touch-action:pan-x; }
     .tab-btn { font-size:11px; min-height:44px; }
     .archive-list-heading { margin:5px 0 6px; }
     .btn-tab-action { font-size:9px; }
     .panel-unitboard-body { overflow:visible; padding:0; }
+}
+
+@media (min-width:768px) and (max-width:1024px), (pointer:coarse) and (min-width:768px) {
+    .preset-inline-tab-btn,.preset-inline-btn-list .btn-gohaeng { min-height:44px; }
 }
 
 /* 도감 카드 — 등급 / 이름 / 조합 / 선택부 */
@@ -520,7 +483,7 @@ html.nexus-standalone-build,html.nexus-standalone-build body { height:auto; min-
     .cart-essence-chip { justify-content:center; gap:15px; }
 }
 
-/* 필요 재료 — 원본의 5열 슬롯 순서와 위치 유지 */
+/* 필요 재료 슬롯 */
 .material-legend { display:flex; align-items:center; gap:4px; font-size:8px; color:#bec6d4; }
 .material-legend i { width:4px; height:4px; border-radius:50%; background:#e6c89e; }
 .costboard-section { height:222px; display:flex; }
@@ -570,7 +533,7 @@ html.nexus-standalone-build,html.nexus-standalone-build body { height:auto; min-
 .btn-text-link:hover { color:#bfc5d1; }
 .ctrl-btn { min-height:29px; padding:5px 9px; border:1px solid #666371; background:#1d1d22; color:#e7d2b0; border-radius:6px; font-size:9px; }
 .ctrl-btn:hover { background:#1b1c22; }
-/* 도감 텍스트 액션과 같은 테마 / 상태 배지와 액션 사이 구분선 */
+
 .hiddenboard-ph-btns .ctrl-btn,
 .grp-title-actions > .btn-text-link {
     position:relative; display:inline-flex; align-items:center; justify-content:center; gap:7px;
@@ -610,7 +573,7 @@ html.nexus-standalone-build,html.nexus-standalone-build body { height:auto; min-
 .hiddenboard-slot.is-visible { display:flex; }
 .hiddenboard-slot.has-target { background:var(--card-surface); }
 .hiddenboard-slot-pool { display:none; }
-/* 일반 재료: v039의 사용처·조합법 전환. 최종목표: 유닛 도감 조합 영역. */
+/* 재료 사용처·조합법 표시 */
 .d-detail-wrap { border-top:1px solid var(--line); background:#ffffff03; }
 .d-detail-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0; padding:7px 16px 0; }
 .d-detail-tab { display:inline-flex; align-items:center; justify-content:center; width:100%; min-width:0; min-height:22px; padding:2px 4px 3px; border:0; border-bottom:1px solid transparent; border-radius:0; background:transparent; color:var(--text-muted); font-size:calc(10px * var(--fs-scale)); font-weight:600; line-height:1.5; cursor:pointer; transition:color .18s,border-color .18s; }
@@ -817,179 +780,3 @@ body .nexus-labelled-control[hidden]{display:none!important}
     .hiddenboard-ph-btns .ctrl-btn,.grp-title-actions > .btn-text-link { min-height:44px; padding-top:10px; padding-bottom:10px; }
 }
 @media (prefers-reduced-motion:reduce) { .action-feedback { transition:none; } }
-
-/* 재료 보드 — 현재 패널 계열과 동일한 표면·제목·스크롤 구조 */
-.main-layout.view-invenboard .panel-left { display:none; }
-.main-layout.view-invenboard .panel-right { min-width:0; min-height:0; }
-#boardContent.invenboard-mode { padding:0; overflow-y:auto; scrollbar-width:none; }
-#boardContent.invenboard-mode::-webkit-scrollbar { display:none; }
-.invenboard-workspace { min-height:100%; padding:0; border:0; border-radius:0; background:transparent; overflow:visible; }
-.invenboard-workspace-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 16px 16px; border-bottom:1px solid #292b32; background:transparent; }
-.invenboard-workspace-title { flex:none; color:var(--g); font-size:calc(14px * var(--fs-scale)); font-weight:700; }
-.invenboard-actions-host { flex:0 1 auto; min-width:0; margin-left:auto; }
-.invenboard-workspace-body { padding:16px; background:transparent; }
-.invenboard-workspace .empty-msg { margin-bottom:12px; }
-/* 재료보드 — 보유량 입력 / 완료 상태 */
-/* 재료 작업 버튼 — 히든 보드의 구분선 있는 텍스트 액션 스타일 */
-.invenboard-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; column-gap:25px; row-gap:5px; padding:0; border:0; }
-.invenboard-actions .pc-btn { position:relative; display:inline-flex; align-items:center; justify-content:center; gap:7px;
-    min-height:32px; padding:6px 2px; border:0; border-radius:3px; background:transparent;
-    color:#e7d2b0; font-size:10px; font-weight:500; line-height:1.4; white-space:nowrap;
-    transition:color .18s,background .18s; }
-.invenboard-actions .pc-btn + .pc-btn::before { content:""; position:absolute; left:-13px; top:50%; width:1px; height:14px;
-    background:var(--line); transform:translateY(-50%); pointer-events:none; }
-.invenboard-actions .pc-btn:hover:not(:disabled) { color:var(--g); background:#efd3a409; }
-.invenboard-actions .pc-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-@media (min-width:1025px) and (min-aspect-ratio:11/10) and (hover:hover) and (pointer:fine) {
-    .invenboard-actions .pc-btn { font-size:calc(13px * var(--fs-scale)); }
-}
-.board-action-icon { display:inline-flex; align-items:center; justify-content:center; flex:0 0 14px; min-width:14px;
-    color:inherit; font-size:13px; line-height:1; }
-.invenboard-actions .invenboard-reset { color:var(--text-muted); }
-.invenboard-actions .invenboard-mode-input.is-manual,
-.invenboard-actions .invenboard-slot-toggle.is-expanded { color:var(--g); }
-.invenboard-actions .pc-btn:disabled { opacity:.38; }
-.invenboard-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:9px; }
-.invenboard-slot { display:flex; min-width:0; min-height:157px; border:1px solid #25272d; border-radius:10px; overflow:hidden; background:#000; transition:border-color .18s,background .18s,box-shadow .18s; box-shadow:none; }
-.invenboard-slot.has-active { border-color:var(--card-tone,var(--accent)); background:color-mix(in srgb,var(--card-tone,var(--accent)) 5%,#14161d); box-shadow:inset 0 1px 0 #ffffff0b; }
-.invenboard-slot:not(.has-active) .invenboard-controls { background:#000; }
-.invenboard-slot:not(.has-active) .invenboard-controls .pc-btn { background:transparent; }
-.invenboard-item { flex:1; min-width:0; display:flex; flex-direction:column; }
-.invenboard-item.is-disabled { opacity:.68; pointer-events:none; filter:grayscale(1); }
-.invenboard-item.is-disabled .invenboard-grade { border-color:transparent; background:transparent; color:var(--text-muted); }
-.invenboard-item.is-disabled .invenboard-input { border-color:var(--line); }
-.invenboard-item.is-disabled .invenboard-qty-caption { visibility:hidden; }
-.invenboard-main { --invenboard-value-height:34px; padding:10px 10px 9px; display:flex; flex:1; flex-direction:column; align-items:stretch; gap:4px; }
-.invenboard-tap { display:flex; flex-direction:column; justify-content:center; align-items:center; flex:0 0 var(--invenboard-value-height); height:var(--invenboard-value-height); min-height:var(--invenboard-value-height); width:100%; margin-top:auto; border:0; border-radius:6px; background:transparent; color:#f5f6fa; }
-.invenboard-tap:disabled { opacity:1; }
-.invenboard-count { font:700 26px/1.12 var(--font-mono); letter-spacing:-.8px; text-shadow:none; }
-.invenboard-name { display:flex; align-items:center; justify-content:center; min-height:2.5em; width:100%; text-align:center; font-size:calc(12px * var(--fs-scale)); font-weight:650; line-height:1.25; overflow-wrap:anywhere; word-break:keep-all; }
-.invenboard-grade.gtag { align-self:center; font-size:9px; padding:2px 6px; }
-.invenboard-qty-caption { flex:none; color:#98a2b2; font-size:calc(9px * var(--fs-scale)); line-height:1; letter-spacing:.03em; text-align:center; }
-.invenboard-controls { display:grid; grid-template-columns:1fr 1fr; gap:5px; padding:7px; border-top:1px solid #ffffff14; background:#0e1016; }
-.invenboard-controls .pc-btn { min-width:0; min-height:28px; padding:5px 3px; border-color:#343842; border-radius:5px; background:#1b1e25; color:#eef1f6; font-size:calc(11px * var(--fs-scale)); font-weight:650; line-height:1.2; }
-.invenboard-controls .pc-btn:hover:not(:disabled) { border-color:var(--card-tone,var(--accent)); background:#262831; }
-.invenboard-manual-value { display:none; flex:0 0 var(--invenboard-value-height); height:var(--invenboard-value-height); width:100%; margin-top:auto; }
-.invenboard-input { display:none; width:100%; min-width:0; height:var(--invenboard-value-height); outline:none; border:1px solid color-mix(in srgb,var(--card-tone,var(--accent)) 70%,#303139); border-radius:6px; background:#0c0d12; color:#fff; text-align:center; font:700 25px var(--font-mono); appearance:textfield; -moz-appearance:textfield; }
-.invenboard-input::-webkit-inner-spin-button,.invenboard-input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
-.invenboard-input::placeholder { color:inherit; opacity:1; }
-.invenboard-input:focus { border-color:var(--card-tone,var(--accent)); outline:1px solid var(--card-tone,var(--accent)); outline-offset:2px; }
-.invenboard-item.is-manual .invenboard-tap { display:none; }
-.invenboard-item.is-manual .invenboard-manual-value,.invenboard-item.is-manual .invenboard-input { display:block; }
-.invenboard-input.is-over-limit { border-color:#ae7261; background:#3c2220; color:#efb29f; }
-
-/* 조합 족보 — 종족·등급·유닛명 목록, 도감 카드형 상세와 조합 경로 */
-.main-layout.view-genealogy { grid-template-columns:minmax(0,1fr); grid-template-areas:"genealogy"; }
-.main-layout.view-genealogy > :is(.panel-left,.panel-right,.build-inspector) { display:none; }
-.genealogy-panel { grid-area:genealogy; display:grid; grid-template-columns:minmax(0,2fr) minmax(0,3fr) minmax(0,5fr); gap:14px; min-width:0; min-height:0; height:100%; overflow:hidden; border:0; border-radius:0; background:transparent; }
-.genealogy-panel[hidden] { display:none; }
-.genealogy-panel button { border:1px solid var(--line); border-radius:6px; padding:7px 11px; background:var(--surface-control); color:var(--text); font:inherit; cursor:pointer; }
-.genealogy-panel button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-.genealogy-panel button:disabled { opacity:.4; cursor:not-allowed; }
-.genealogy-sidebar { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; border:1px solid #c5a66d; border-radius:15px; background:#0d0e12; }
-.genealogy-sidebar-controls { flex:none; padding:16px 14px 11px; border-bottom:1px solid #303139; }
-.genealogy-option-empty,.genealogy-error { padding:16px; color:var(--text-muted); font-size:12px; }
-.genealogy-sidebar-heading { display:flex; justify-content:space-between; align-items:flex-end; gap:8px; margin:0 2px 13px; }
-.genealogy-sidebar-heading h2 { color:#ead7ad; font-size:calc(15px * var(--fs-scale)); font-weight:700; letter-spacing:-.5px; }
-.genealogy-sidebar-heading > span { color:#bfc5d1; font:10px var(--font-mono); white-space:nowrap; }
-.genealogy-grade-filters { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:3px; padding:3px; border:1px solid var(--line); border-radius:9px; background:#111216; }
-.genealogy-panel .genealogy-grade-filters button { min-width:0; min-height:34px; padding:7px 2px; border:1px solid transparent; border-radius:6px; background:transparent; color:#bfc5d1; font-size:11px; font-weight:500; transition:color .16s,border-color .16s,background-color .16s; }
-.genealogy-panel .genealogy-grade-filters button:hover { color:#f1d7a5; background:#23201c; }
-.genealogy-panel .genealogy-grade-filters button[aria-pressed="true"] { border-color:#665238; background:#29231c; color:#f1d7a5; font-weight:700; }
-.genealogy-target-list { flex:1; min-height:0; padding:12px 12px 17px; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; scrollbar-width:none; }
-.genealogy-target-list::-webkit-scrollbar,.genealogy-detail-scroll::-webkit-scrollbar,.genealogy-scroll::-webkit-scrollbar { display:none; width:0; height:0; }
-.genealogy-list-grade { display:flex; justify-content:space-between; align-items:center; margin:4px 2px 10px; padding:7px 2px; color:#eedcc0; border-bottom:1px solid #363238; font-size:11px; font-weight:700; }
-.genealogy-list-grade:not(:first-child) { margin-top:17px; }
-.genealogy-list-grade span { color:var(--text-muted); font:10px var(--font-mono); }
-.genealogy-panel .genealogy-target-item { display:flex; align-items:center; gap:5px; width:100%; min-height:39px; margin:0 0 6px; padding:8px 7px; border:1px solid #303139; border-radius:8px; background:#17181e; text-align:left; transition:background-color .16s,border-color .16s; }
-.genealogy-race-badge { color:#c2c9d7; border-color:#626a78; background:rgba(151,160,176,.11); white-space:nowrap; }
-.genealogy-panel .genealogy-target-item:hover { border-color:#68553e; background:#222027; }
-.genealogy-panel .genealogy-target-item[aria-pressed="true"] { border-color:#a58a60; background:#29231c; }
-.genealogy-target-name { min-width:0; font-size:calc(12px * var(--fs-scale)); font-weight:600; overflow-wrap:anywhere; }
-.genealogy-detail { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; border:0; }
-.genealogy-detail-heading { display:flex; align-items:center; min-height:54px; padding:12px 10px; border-bottom:1px solid #282a31; }
-.genealogy-detail-heading h2 { color:var(--g); font-size:15px; font-weight:700; }
-.genealogy-detail-scroll { flex:1; min-height:0; min-width:0; overflow:auto; overscroll-behavior:contain; padding:14px 12px 10px; scrollbar-width:none; }
-.genealogy-info { min-width:0; }
-.genealogy-content { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; }
-.genealogy-toolbar { flex:none; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:11px 10px; border-bottom:1px solid #282a31; background:transparent; }
-.genealogy-toolbar-title { flex:none; color:var(--g); font-size:14px; font-weight:700; letter-spacing:.01em; }
-.genealogy-toolbar-buttons { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; column-gap:25px; row-gap:5px; margin-left:auto; }
-/* 조합 족보 탐색 버튼도 히든 보드와 같은 텍스트·구분선 디자인을 사용한다. */
-.genealogy-panel .genealogy-toolbar-buttons button { position:relative; display:inline-flex; align-items:center; justify-content:center;
-    min-height:32px; padding:6px 2px; border:0; border-radius:3px; background:transparent;
-    color:#e7d2b0; font-size:10px; font-weight:500; line-height:1.4; white-space:nowrap;
-    transition:color .18s,background .18s; }
-.genealogy-panel .genealogy-toolbar-buttons button + button::before { content:""; position:absolute; left:-13px; top:50%;
-    width:1px; height:14px; background:var(--line); transform:translateY(-50%); pointer-events:none; }
-.genealogy-panel .genealogy-toolbar-buttons button:hover:not(:disabled) { color:var(--g); background:#efd3a409; }
-.genealogy-panel .genealogy-toolbar-buttons button:active:not(:disabled) { color:var(--g); background:#efd3a410; }
-.genealogy-panel .genealogy-toolbar-buttons button:disabled { color:var(--text-muted); background:transparent; }
-@media (min-width:1025px) and (min-aspect-ratio:11/10) and (hover:hover) and (pointer:fine) {
-    .genealogy-panel .genealogy-grade-filters button,.genealogy-panel .genealogy-toolbar-buttons button { font-size:calc(12px * var(--fs-scale)); }
-}
-.genealogy-workspace { display:flex; flex:1; min-height:0; min-width:0; }
-.genealogy-scroll { flex:1; min-height:0; overflow:auto; padding:14px 14px 15px; overscroll-behavior:contain; scrollbar-width:none; }
-.genealogy-graph { width:100%; min-width:0; margin:auto; }
-.genealogy-empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:240px; gap:10px; padding:32px 16px; border:1px dashed var(--line); border-radius:10px; color:var(--text-muted); text-align:center; }
-.genealogy-empty-state p { color:var(--text); font-size:15px; font-weight:600; }
-.genealogy-empty-state span { font-size:12px; line-height:1.7; }
-.genealogy-target-overview { --card-tone:var(--accent); margin:0; overflow:hidden; border:1px solid var(--card-tone); border-radius:12px; background:#111216; }
-.genealogy-target-overview[data-grade="히든"] { --card-tone:var(--grade-hidden); }
-.genealogy-target-overview[data-grade="고유히든"] { --card-tone:var(--grade-unique-hidden); }
-.genealogy-target-overview[data-grade="슈퍼히든"] { --card-tone:var(--grade-super); }
-.genealogy-target-overview-top { display:flex; flex-direction:column; align-items:stretch; gap:12px; padding:15px 14px 9px; }
-.genealogy-target-profile { min-width:0; }
-.genealogy-target-profile h3 { margin:11px 0; font-size:22px; font-weight:700; line-height:1.3; overflow-wrap:anywhere; }
-.genealogy-target-profile p { margin-top:9px; color:var(--text-muted); font-size:11px; line-height:1.7; }
-.genealogy-target-profile .uc-notes { margin-top:8px; }
-.genealogy-target-profile .genealogy-conditions.uc-recipe-area { flex:none; margin-top:16px; padding:12px 0 0; border:0; border-top:1px solid #303139; border-radius:0; background:transparent; }
-.genealogy-section-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:6px; }
-.genealogy-section-heading .recipe-label { margin:0; }
-.genealogy-section-heading .genealogy-condition-count { color:#a1a6b1; font:10px var(--font-mono); letter-spacing:0; }
-.genealogy-section-heading small { color:var(--text-muted); font-size:10px; }
-.genealogy-condition-list.recipe-vertical { gap:0; }
-.genealogy-panel .genealogy-condition-item { display:flex; align-items:center; gap:8px; min-width:0; min-height:43px; padding:8px 6px; border:0; border-bottom:1px solid #303139; border-radius:0; background:transparent; text-align:left; }
-.genealogy-panel .genealogy-condition-item:last-child { border-bottom:0; }
-.genealogy-panel .genealogy-condition-item:hover { background:#24231f; }
-.genealogy-condition-item .gtag { flex:none; }
-.genealogy-condition-main { display:flex; flex:1; flex-direction:column; align-items:flex-start; gap:3px; min-width:0; }
-.genealogy-condition-name { font-size:calc(12px * var(--fs-scale)); font-weight:700; line-height:1.3; overflow-wrap:anywhere; }
-.genealogy-condition-detail { color:#c8b894; font-size:calc(10px * var(--fs-scale)); line-height:1.55; word-break:keep-all; overflow-wrap:anywhere; }
-.genealogy-condition-qty { margin-left:auto; color:var(--accent); font:700 12px var(--font-mono); white-space:nowrap; }
-.genealogy-tree-wrap { min-width:0; padding:8px 1px 12px; border:0; border-radius:0; background:transparent; }
-.genealogy-tree-root { list-style:none; }
-.genealogy-tree-children { list-style:none; margin:3px 0 4px 12px; padding:2px 0 2px 20px; border-left:1px solid #62513a; }
-.genealogy-tree-entry { position:relative; min-width:0; padding:3px 0; }
-.genealogy-tree-children > .genealogy-tree-entry::before { content:""; position:absolute; left:-20px; top:22px; width:20px; border-top:1px solid #62513a; }
-.genealogy-tree-node > summary,.genealogy-tree-leaf { display:block; position:relative; min-width:0; padding:8px 8px 8px 24px; border:1px solid #36383f; border-radius:8px; background:#17181e; color:var(--text); }
-.genealogy-tree-node > summary { cursor:pointer; list-style:none; }
-.genealogy-tree-node > summary::-webkit-details-marker { display:none; }
-.genealogy-tree-node > summary:hover { color:var(--g); }
-.genealogy-tree-node > summary:focus-visible { outline:1px dashed #786445; outline-offset:-1px; }
-.genealogy-tree-node > summary::before { content:"▸"; position:absolute; top:11px; left:8px; color:var(--accent); font-size:13px; transform:rotate(0deg); }
-.genealogy-tree-node[open] > summary::before { transform:rotate(90deg); }
-.genealogy-tree-heading { display:flex; flex-wrap:wrap; align-items:center; gap:7px; min-width:0; }
-.genealogy-tree-name { flex:1 1 auto; min-width:0; font-size:calc(12px * var(--fs-scale)); font-weight:700; overflow-wrap:anywhere; }
-.genealogy-tree-qty { margin-left:auto; color:var(--accent); font:700 13px var(--font-mono); white-space:nowrap; }
-.genealogy-tree-notes { display:flex; flex-wrap:wrap; gap:3px 12px; margin:5px 0 0; }
-.genealogy-tree-condition { color:#d1bc8f; font-size:calc(10px * var(--fs-scale)); line-height:1.5; overflow-wrap:anywhere; }
-.genealogy-tree-tool-note { display:inline-flex; flex-wrap:wrap; align-items:center; gap:2px 8px; padding:0; border:0; border-radius:0; background:transparent; color:#e7d5a8; font-size:10px; line-height:1.5; }
-.genealogy-tree-tool-note strong { color:#f0ce8e; font-size:10px; white-space:nowrap; }
-.genealogy-tree-tool-note small { color:#aeb1b9; font-size:10px; white-space:nowrap; }
-.genealogy-tree-root > .genealogy-tree-entry > .genealogy-tree-node > summary { border:1px solid #a68b56; background:#282217; }
-.genealogy-tree-entry.is-genealogy-focus > .genealogy-tree-node > summary .genealogy-tree-name,.genealogy-tree-entry.is-genealogy-focus > .genealogy-tree-leaf .genealogy-tree-name { text-decoration:underline; text-decoration-color:#dab87e; text-decoration-thickness:2px; text-underline-offset:4px; }
-.genealogy-cost { min-width:0; padding:0; border:0; border-radius:0; background:transparent; }
-.genealogy-cost h4 { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:4px; margin:0 0 8px; color:var(--g); font-size:12px; font-weight:700; }
-.genealogy-cost-grid.costboard-grid { grid-template-columns:repeat(5,minmax(0,1fr)); grid-template-rows:repeat(5,minmax(46px,clamp(46px,3.3vw,55px))); gap:4px; }
-.genealogy-cost-grid .costboard-slot { min-height:0; gap:2px; padding:4px 2px; }
-.genealogy-cost-grid .costboard-val { min-height:16px; font-size:15px; }
-.genealogy-cost-grid .costboard-name { font-size:calc(8px * var(--fs-scale)); }
-.genealogy-cost-grid .costboard-split-item { gap:1px; }
-.genealogy-cost-grid .costboard-split-item .costboard-val { font-size:12px; }
-.genealogy-cost-grid .costboard-split-item .costboard-name { font-size:calc(7px * var(--fs-scale)); }
-.genealogy-cost-spacer { border-color:#26282c; opacity:.35; }
-/* 재료보드·유닛족보는 PC 전용이며 태블릿·모바일에서는 생성하지 않는다. */
-@media (max-width:1024px), (max-aspect-ratio:11/10), (hover:none) and (pointer:coarse) {
-    #btnViewInvenboard, #btnViewGenealogy, #genealogyPanel { display:none; }
-}
