@@ -7,7 +7,7 @@ modalStyle.id = 'nexus-patch-modal-style';
 modalStyle.textContent = String.raw`/* 패치노트 모달 */
 #nexusPatchDialog {
  --accent:#dfbe83; --g:#dfbe83; --patch-canvas:#0d1015; --patch-body:#11151d;
- position:fixed; inset:0; margin:auto; width:min(820px,calc(100vw - 48px)); height:min(750px,calc(100dvh - 64px));
+ position:fixed; inset:0; margin:auto; width:min(820px,calc(100vw - 48px)); height:min(690px,calc(100dvh - 50px));
  max-width:none; max-height:none; padding:0; overflow:hidden; border:1px solid #776340; border-radius:16px;
  background:var(--patch-canvas); color:var(--ink); box-shadow:0 30px 110px #000e, 0 0 0 1px #ffffff07;
  font:calc(13px * var(--fs-scale))/1.5 var(--font-body);
@@ -15,22 +15,21 @@ modalStyle.textContent = String.raw`/* 패치노트 모달 */
 #nexusPatchDialog[open] { display:flex; flex-direction:column; }
 #nexusPatchDialog::backdrop { background:#000c; backdrop-filter:blur(5px); }
 #nexusPatchDialog [hidden] { display:none!important; }
-#nexusPatchDialog button,#nexusPatchDialog input { font:inherit; }
+#nexusPatchDialog button,#nexusPatchDialog input,#nexusPatchDialog select { font:inherit; }
 #nexusPatchDialog button { transition:background .15s,color .15s,border-color .15s; }
-#nexusPatchDialog :is(button,input,summary):focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+#nexusPatchDialog :is(button,input,select,summary):focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
 /* 헤더 */
-#nexusPatchDialog .patch-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-shrink:0; padding:17px 22px 15px; border-bottom:1px solid #343039; background:linear-gradient(125deg,#242027 0%,#191b22 50%,#11151c 100%); }
+#nexusPatchDialog .patch-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-shrink:0; padding:10px 22px; border-bottom:1px solid #343039; background:linear-gradient(125deg,#242027 0%,#191b22 50%,#11151c 100%); }
 #nexusPatchDialog .patch-title { display:flex; align-items:center; gap:12px; min-width:0; }
-#nexusPatchDialog .patch-emblem { display:grid; place-items:center; width:42px; height:42px; flex-shrink:0; border:1px solid #8e744c; border-radius:12px; background:linear-gradient(145deg,#4a3b28,#22252f 82%); color:#f1d399; box-shadow:inset 0 1px 0 #ffffff20,0 4px 12px #0005; }
-#nexusPatchDialog .patch-emblem svg { width:22px; height:22px; }
+#nexusPatchDialog .patch-emblem { display:grid; place-items:center; width:34px; height:34px; flex-shrink:0; border:1px solid #8e744c; border-radius:12px; background:linear-gradient(145deg,#4a3b28,#22252f 82%); color:#f1d399; box-shadow:inset 0 1px 0 #ffffff20,0 4px 12px #0005; }
+#nexusPatchDialog .patch-emblem svg { width:19px; height:19px; }
 #nexusPatchDialog .patch-kicker { display:block; margin-bottom:2px; color:#c5ac82; font:600 9px/1.3 var(--font-mono); letter-spacing:.14em; }
-#nexusPatchDialog h2 { color:#f3e3c5; font-size:20px; font-weight:700; line-height:1.18; letter-spacing:-.5px; }
-#nexusPatchDialog .patch-subtitle { margin-top:4px; color:#abb1be; font-size:11px; line-height:1.2; }
+#nexusPatchDialog h2 { color:#f3e3c5; font-size:18px; font-weight:700; line-height:1.18; letter-spacing:-.5px; }
 #patch-close { display:grid; place-items:center; width:33px; height:33px; flex-shrink:0; border:1px solid #484954; border-radius:8px; background:#20222a; color:#c3c8d3; }
 #patch-close:hover { border-color:#9a825b; background:#302c2a; color:#f4dba9; }
-#nexusPatchDialog .patch-controls { padding:12px 22px 12px; flex-shrink:0; border-bottom:1px solid #313744; background:#12161d; }
-#nexusPatchDialog .patch-toolbar { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+#nexusPatchDialog .patch-controls { padding:10px 22px; flex-shrink:0; border-bottom:1px solid #313744; background:#12161d; }
+#nexusPatchDialog .patch-toolbar { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
 #patch-refresh { flex-shrink:0; min-height:36px; padding:5px 11px; border:1px solid #454e5e; border-radius:8px; background:#212834; color:#c7d1e0; font-size:11px!important; font-weight:600!important; }
 #patch-refresh:hover:not(:disabled) { background:#303a4c; border-color:#8294b0; color:#fff; }
 #nexusPatchDialog .patch-search { flex:1; min-width:0; display:flex; align-items:center; gap:9px; min-height:36px; padding:0 11px; border:1px solid #3e4756; border-radius:8px; background:#0b0f15; transition:border-color .15s,box-shadow .15s; }
@@ -38,6 +37,16 @@ modalStyle.textContent = String.raw`/* 패치노트 모달 */
 #nexusPatchDialog .patch-search svg { width:15px; height:15px; flex-shrink:0; color:#929fb4; }
 #nexusPatchDialog .patch-search input { flex:1; width:100%; min-width:0; min-height:34px; border:0; outline:none; background:transparent; color:#edf1f8; font-size:12px; }
 #nexusPatchDialog input::placeholder { color:#8b95a6; }
+#nexusPatchDialog .patch-periodbar { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:8px; min-width:0; margin-bottom:9px; }
+#nexusPatchDialog .patch-range { min-width:0; overflow:hidden; color:#c1ad90; font-size:10px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+#nexusPatchDialog .patch-periodtabs { display:flex; align-items:center; justify-content:center; gap:16px; white-space:nowrap; }
+#nexusPatchDialog .patch-periodtabs button { padding:4px 1px 5px; border:0; border-bottom:2px solid transparent; border-radius:0; background:transparent; color:#aaa49b; font-size:11px; line-height:1.25; transition:none; }
+#nexusPatchDialog .patch-periodtabs button[aria-pressed="true"] { border-bottom-color:#dfbe83; color:#f6dfb0; font-weight:700; }
+#nexusPatchDialog .patch-periodtabs button:hover { color:#f6dfb0; }
+#nexusPatchDialog .patch-version { justify-self:end; max-width:100%; min-width:106px; min-height:30px; padding:4px 8px; border:1px solid #5b5349; border-radius:7px; background:#242128; color:#f0dfbf; font-size:11px; cursor:pointer; }
+#nexusPatchDialog .patch-month { display:grid; gap:12px; min-width:0; }
+#nexusPatchDialog .patch-month-head { margin:0 0 2px; padding:0 1px 7px; border-bottom:1px solid #514634; color:#d8c39e; font-size:12px; font-weight:650; }
+#nexusPatchDialog .patch-month-releases { display:grid; gap:20px; min-width:0; }
 #nexusPatchDialog .patch-filter-row { display:flex; align-items:center; justify-content:center; gap:8px 12px; flex-wrap:wrap; }
 #nexusPatchDialog .tag-filters { display:flex; align-items:center; justify-content:center; gap:5px; flex-wrap:wrap; }
 #nexusPatchDialog .tag-filters button { min-height:30px; padding:4px 12px; border:1px solid #3b4351; border-radius:7px; background:#171c25; color:#aeb8c8; font-size:11px; }
@@ -83,7 +92,6 @@ modalStyle.textContent = String.raw`/* 패치노트 모달 */
 #nexusPatchDialog .note-kind-label[data-kind="improve"] { color:#c4cbd4; }
 #nexusPatchDialog .note-kind-label[data-kind="general"] { color:#cbbba1; }
 #nexusPatchDialog .change-tag { padding:2px 7px; border:1px solid #4c596b; border-radius:5px; background:#293243; color:#d0dbee; font-size:10px; line-height:1.45; }
-#nexusPatchDialog .note-meta { flex:0 0 auto; margin-left:auto; text-align:right; white-space:nowrap; }
 #nexusPatchDialog time { display:block; color:#a5b1c2; font:10px/1.5 var(--font-mono); font-variant-numeric:tabular-nums; letter-spacing:0; white-space:nowrap; }
 #nexusPatchDialog .note-excerpt { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin:9px 0 0; color:#b8b7b4; font-size:11.5px; line-height:1.55; }
 /* 상세 본문 */
@@ -118,17 +126,20 @@ modalStyle.textContent = String.raw`/* 패치노트 모달 */
 #patch-reader-position { display:block; color:#e3c99e; font:600 11px var(--font-mono); }
 
 /* 반응형 */
-@media(max-width:767px) { .global-header .gh-left { padding-right:158px; } }
 @media(max-width:540px) {
- #nexusPatchDialog { width:calc(100vw - 20px); height:calc(100dvh - 24px); border-radius:13px; }
+ #nexusPatchDialog { width:calc(100vw - 20px); height:min(690px,calc(100dvh - 24px)); border-radius:13px; }
  #nexusPatchDialog .patch-heading { gap:10px; padding:13px 13px 12px; }
  #nexusPatchDialog .patch-title { gap:9px; }
  #nexusPatchDialog .patch-emblem { width:35px; height:37px; }
  #nexusPatchDialog .patch-emblem svg { width:19px; height:19px; }
  #nexusPatchDialog .patch-kicker { font-size:8px; }
  #nexusPatchDialog h2 { font-size:18px; }
- #nexusPatchDialog .patch-subtitle { font-size:10px; }
- #nexusPatchDialog .patch-controls { padding:10px 12px 11px; }
+ #nexusPatchDialog .patch-controls { padding:9px 12px; }
+ #nexusPatchDialog .patch-periodbar { gap:4px; margin-bottom:8px; }
+ #nexusPatchDialog .patch-range { font-size:9px; letter-spacing:-.035em; }
+ #nexusPatchDialog .patch-periodtabs { gap:7px; }
+ #nexusPatchDialog .patch-periodtabs button { font-size:10px; padding:4px 0 5px; }
+ #nexusPatchDialog .patch-version { min-width:77px; max-width:90px; min-height:28px; padding:3px 4px; font-size:10px; }
  #nexusPatchDialog .patch-toolbar { gap:6px; margin-bottom:8px; }
  #nexusPatchDialog .patch-search input { font-size:11px; }
  #patch-refresh { padding-inline:9px; font-size:10px!important; }
@@ -180,6 +191,10 @@ let notes = [];
 let searchText = '';
 
 let chosenKind = 'all';
+let chosenPeriod = 'latest';
+let chosenVersion = '';
+let versionManuallySelected = false;
+let renderedMonth = '';
 let listScrollTop = 0;
 let lastAttempt = 0;
 let nextAttempt = 0;
@@ -306,17 +321,77 @@ function renderBody(note) {
 }
 
 // ── 04 · 검색·필터·버전별 표시 ──
+// 작성일은 한국시간(KST)을 기준으로 이번 달과 이전 달을 구분한다.
+const monthKey = (value) => formatPublishedAt(value).slice(0, 7);
+const baseVersion = (note) => {
+  const match = /^v(\d+)(?:[a-z]+)?$/iu.exec(note.version || '');
+  return match ? `V${match[1]}` : (note.version || '').replace(/^v/iu, 'V');
+};
+function byMonth(items) {
+  const months = new Map();
+  for (const note of items) {
+    const key = monthKey(note.publishedAt);
+    if (key && !months.has(key)) months.set(key, []);
+    if (key) months.get(key).push(note);
+  }
+  return [...months].sort(([a], [b]) => b.localeCompare(a)).map(([month, items]) => ({ month, items }));
+}
+function periodNotes() {
+  const current = monthKey(new Date());
+  return notes.filter((note) => {
+    const key = monthKey(note.publishedAt);
+    return key && (chosenPeriod === 'latest' ? key === current : key < current);
+  });
+}
+function updatePeriodControls() {
+  const current = monthKey(new Date());
+  const [year, month] = current.split('.').map(Number);
+  $('month-range').textContent = chosenPeriod === 'latest'
+    ? `${year}년 ${month}월`
+    : `${year}년 ${month}월 이전`;
+  query('.patch-periodtabs [aria-pressed="true"]')?.setAttribute('aria-pressed', 'false');
+  query(`.patch-periodtabs [data-period="${chosenPeriod}"]`).setAttribute('aria-pressed', 'true');
+  const versions = [...new Set(periodNotes().map(baseVersion).filter(Boolean))].sort((a, b) => {
+    const av = /^V(\d+)$/iu.exec(a), bv = /^V(\d+)$/iu.exec(b);
+    if (av && bv) return Number(bv[1]) - Number(av[1]);
+    if (av) return -1;
+    if (bv) return 1;
+    return b.localeCompare(a);
+  });
+  if (!versionManuallySelected || !versions.includes(chosenVersion)) {
+    chosenVersion = versions[0] || '';
+    versionManuallySelected = false;
+  }
+  const select = $('version');
+  const options = versions.map((version) => {
+    const option = element('option', version);
+    option.value = version;
+    return option;
+  });
+  if (!options.length) {
+    const option = element('option', '등록된 버전 없음');
+    option.value = '';
+    option.disabled = true;
+    options.push(option);
+  }
+  select.replaceChildren(...options);
+  select.value = chosenVersion;
+  select.disabled = !versions.length;
+  renderedMonth = current;
+}
 function selectedNotes() {
-  const matches = notes.filter((note) => (chosenKind === 'all' || note.kinds.includes(chosenKind)) &&
+  const matches = periodNotes().filter((note) =>
+    chosenVersion && baseVersion(note) === chosenVersion &&
+    (chosenKind === 'all' || note.kinds.includes(chosenKind)) &&
     [note.name, ...note.tags, note.body, ...note.kinds.map((kind) => statusLabel[kind])]
       .join(' ').toLocaleLowerCase().includes(searchText));
-  // 화면의 버전 정렬과 상세보기 이전·다음 이동 순서를 동일하게 유지한다.
-  return groupByRelease(matches).flatMap((group) => group.items);
+  // 월별 역순·기본 버전 역순을 상세보기 이전/다음 이동에도 적용한다.
+  return byMonth(matches).flatMap(({ items }) => groupByRelease(items).flatMap((group) => group.items));
 }
 
 function updateFeedStatus() {
   const count = selectedNotes().length;
-  $('result-summary').textContent = '전체 기간 · ' + count + '건';
+  $('result-summary').textContent = (chosenPeriod === 'latest' ? '최신 내역' : '이전 내역') + ' · ' + count + '건';
   const status = $('feed-status');
   status.textContent = searchText ? '검색어와 일치하는 소식이 없습니다.'
     : chosenKind === 'new' ? '등록된 신규기능 소식이 없습니다.'
@@ -406,11 +481,12 @@ function resetReader() {
 }
 
 function renderNotes() {
+  updatePeriodControls();
   const selected = selectedNotes();
   const active = selected.find((note) => note.number === activeNoteNumber);
   if (!active) activeNoteNumber = null;
   const displayNotes = active ? [active] : selected;
-  const releases = groupByRelease(displayNotes).map((group) => {
+  const makeRelease = (group) => {
     const section = element('section', '', 'release');
     const header = element('header', '', 'release-head');
     const heading = element('div', '', 'release-heading');
@@ -457,7 +533,17 @@ function renderNotes() {
     items.append(...cards);
     section.append(header, items);
     return section;
-  });
+  };
+  const releases = chosenPeriod === 'latest' ? groupByRelease(displayNotes).map(makeRelease) :
+    byMonth(displayNotes).map(({ month, items }) => {
+      const archive = element('section', '', 'patch-month');
+      const [year, monthNumber] = month.split('.');
+      archive.append(element('h3', `${year}년 ${Number(monthNumber)}월`, 'patch-month-head'));
+      const children = element('div', '', 'patch-month-releases');
+      children.append(...groupByRelease(items).map(makeRelease));
+      archive.append(children);
+      return archive;
+    });
   $('notes').replaceChildren(...releases);
   updateFeedStatus();
   syncReaderNavigation();
@@ -550,6 +636,19 @@ query('.tag-filters').addEventListener('click', (event) => {
   resetReader();
   renderNotes();
 });
+query('.patch-periodtabs').addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-period]');
+  if (!button || button.dataset.period === chosenPeriod) return;
+  chosenPeriod = button.dataset.period;
+  chosenVersion = '';
+  versionManuallySelected = false;
+  resetReader(); renderNotes();
+});
+$('version').addEventListener('change', (event) => {
+  chosenVersion = event.target.value;
+  versionManuallySelected = true;
+  resetReader(); renderNotes();
+});
 $('note-search').addEventListener('input', () => {
   searchText = $('note-search').value.trim().toLocaleLowerCase();
   resetReader();
@@ -557,12 +656,16 @@ $('note-search').addEventListener('input', () => {
 });
 
 function refreshIfDue() {
-  if (dialog.open && !document.hidden && Date.now() - lastAttempt >= refreshInterval) void refreshNotes();
+  if (!dialog.open || document.hidden) return;
+  if (monthKey(new Date()) !== renderedMonth) { chosenVersion = ''; versionManuallySelected = false; resetReader(); renderNotes(); }
+  if (Date.now() - lastAttempt >= refreshInterval) void refreshNotes();
 }
 
 trigger.addEventListener('click', () => {
   dialog.showModal();
   trigger.setAttribute('aria-expanded', 'true');
+  chosenVersion = '';
+  versionManuallySelected = false;
   renderNotes();
   if (!lastAttempt) { $('feed-status').textContent = '패치노트를 불러오는 중입니다.'; $('feed-status').hidden = false; }
   void refreshNotes();
