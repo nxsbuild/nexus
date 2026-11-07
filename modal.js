@@ -181,7 +181,7 @@ function formatPublishedAt(value) {
   return `${parts.year}.${parts.month}.${parts.day} ${parts.hour}:${parts.minute}`;
 }
 const refreshInterval = 60_000;
-const statusLabel = { update: 'VERSION UPDATE', new: 'NEW MODE', fix: 'BUG FIX', improve: 'IMPROVEMENT', general: 'PATCH NOTE' };
+const statusLabel = { update: 'VERSION UPDATE', new: 'NEW HIDDEN', fix: 'BUG FIX', improve: 'IMPROVEMENT', general: 'PATCH NOTE' };
 
 const dialog = document.getElementById('nexusPatchDialog');
 const query = (selector) => dialog.querySelector(selector);
@@ -221,7 +221,7 @@ function toNote(issue) {
   // 대괄호에 적은 변경 유형으로만 분류하며, #태그는 검색과 표시용으로 독립 처리한다.
   const version = classification.match(/\b(v\d+[\w.-]*)\b/iu)?.[0] || '';
   const kinds = [];
-  if (/(?:신규\s*기능|신규\s*히든|new[\s_-]*mode|newmode)/iu.test(classification)) kinds.push('new');
+  if (/(?:신규\s*기능|신규\s*히든|new[\s_-]*hidden|new[\s_-]*mode|newmode)/iu.test(classification)) kinds.push('new');
   if (/(?:오류\s*수정|버그\s*수정|bug[\s_-]*fix)/iu.test(classification)) kinds.push('fix');
   if (/(?:개선\s*사항|개선|improvement)/iu.test(classification)) kinds.push('improve');
   if (!kinds.length) kinds.push(version ? 'update' : 'general');
@@ -229,7 +229,7 @@ function toNote(issue) {
     .map((line) => /^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$/u.exec(line)?.[1] || '')
     .find((line) => line && !/^(?:변경\s*사항|업데이트\s*내용|상세\s*내용|공지\s*사항)$/u.test(line.trim()));
   const remaining = classification.replace(/\b[vV]\d+[\w.-]*\b/gu, '')
-    .replace(/(?:신규\s*기능|신규\s*히든|오류\s*수정|버그\s*수정|개선\s*사항|개선|업데이트)/gu, '').trim();
+    .replace(/(?:신규\s*기능|신규\s*히든|new[\s_-]*hidden|오류\s*수정|버그\s*수정|개선\s*사항|개선|업데이트)/giu, '').trim();
   const issueTitle = withoutTags.slice(prefix.length).replace(/\s+/gu, ' ').trim();
   const bodyLine = body.split(/\r?\n/gu).map((line) => line.trim())
     .find((line) => line && !/^(?:[-*+]\s+|\| |---|```|!\[)/u.test(line)) || '';
@@ -394,7 +394,7 @@ function updateFeedStatus() {
   $('result-summary').textContent = (chosenPeriod === 'latest' ? '최신 내역' : '이전 내역') + ' · ' + count + '건';
   const status = $('feed-status');
   status.textContent = searchText ? '검색어와 일치하는 소식이 없습니다.'
-    : chosenKind === 'new' ? '등록된 신규기능 소식이 없습니다.'
+    : chosenKind === 'new' ? '등록된 신규히든 소식이 없습니다.'
     : chosenKind === 'fix' ? '등록된 오류수정 소식이 없습니다.'
     : chosenKind === 'improve' ? '등록된 개선사항이 없습니다.'
     : chosenKind === 'update' ? '등록된 업데이트가 없습니다.'
